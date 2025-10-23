@@ -23,6 +23,8 @@ class Booking extends Model
         'booking_reference',
         'status',
         'booking_date',
+        'start_date',
+        'end_date',
         'start_time',
         'end_time',
         'estimated_hours',
@@ -30,6 +32,7 @@ class Booking extends Model
         'extra_hours',
         'pickup_address',
         'delivery_address',
+        'via_address',
         'pickup_postcode',
         'delivery_postcode',
         'job_description',
@@ -46,16 +49,42 @@ class Booking extends Model
         'manual_amount',
         'started_at',
         'completed_at',
+        // New enhanced fields
+        'source',
+        'contact_no',
+        'email',
+        'booking_type',
+        'booked_hours',
+        'helpers_count',
+        'deposit',
+        'hourly_rate',
+        'details_shared_with_customer',
+        'booking_confirmation_sent',
+        'total_fare',
+        'total_completion_time_hours',
+        'total_earning_inc_deposit',
+        'ulez_mileage_charges',
+        'porter_cost',
+        'payment_method',
+        'remaining_amount',
+        'discount',
+        'discount_reason',
+        'notes',
+        'review_link',
+        'week_start',
     ];
 
     protected function casts(): array
     {
         return [
             'booking_date' => 'datetime',
+            'start_date' => 'date',
+            'end_date' => 'date',
             'start_time' => 'datetime',
             'end_time' => 'datetime',
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
+            'week_start' => 'date',
             'total_amount' => 'decimal:2',
             'porter_ids' => 'array',
             'is_company_booking' => 'boolean',
@@ -65,6 +94,15 @@ class Booking extends Model
             'extra_hours_amount' => 'decimal:2',
             'is_manual_amount' => 'boolean',
             'manual_amount' => 'decimal:2',
+            'booking_confirmation_sent' => 'boolean',
+            'deposit' => 'decimal:2',
+            'hourly_rate' => 'decimal:2',
+            'total_fare' => 'decimal:2',
+            'total_earning_inc_deposit' => 'decimal:2',
+            'ulez_mileage_charges' => 'decimal:2',
+            'porter_cost' => 'decimal:2',
+            'remaining_amount' => 'decimal:2',
+            'discount' => 'decimal:2',
         ];
     }
 
@@ -280,5 +318,66 @@ class Booking extends Model
             return implode(', ', $porters);
         }
         return $this->porter ? $this->porter->name : '';
+    }
+
+    // New helper methods for enhanced booking functionality
+    public function calculateTotalFare(): float
+    {
+        if ($this->booking_type === 'fixed') {
+            return $this->total_fare;
+        } elseif ($this->booking_type === 'hourly' && $this->hourly_rate && $this->booked_hours) {
+            return $this->hourly_rate * $this->booked_hours;
+        }
+        return 0;
+    }
+
+    public function calculateRemainingAmount(): float
+    {
+        return max(0, $this->total_fare - $this->deposit);
+    }
+
+    public function calculateTotalEarning(): float
+    {
+        return $this->total_fare + $this->deposit + $this->ulez_mileage_charges;
+    }
+
+    public function isFixedBooking(): bool
+    {
+        return $this->booking_type === 'fixed';
+    }
+
+    public function isHourlyBooking(): bool
+    {
+        return $this->booking_type === 'hourly';
+    }
+
+    public function getBookingTypeLabel(): string
+    {
+        return $this->booking_type === 'fixed' ? 'Fixed Price' : 'Hourly Rate';
+    }
+
+    public function getPaymentMethodLabel(): string
+    {
+        return match($this->payment_method) {
+            'cash' => 'Cash',
+            'card' => 'Card',
+            'bank_transfer' => 'Bank Transfer',
+            default => 'Not Specified'
+        };
+    }
+
+    public function canAddExtraHours(): bool
+    {
+        return $this->status === 'completed' && $this->extra_hours > 0;
+    }
+
+    public function getTotalExpenses(): float
+    {
+        return $this->expenses()->sum('amount');
+    }
+
+    public function getNetProfit(): float
+    {
+        return $this->calculateTotalEarning() - $this->getTotalExpenses();
     }
 }

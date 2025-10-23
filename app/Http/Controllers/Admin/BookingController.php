@@ -73,10 +73,13 @@ class BookingController extends Controller
         $request->validate([
             'customer_id' => 'required|exists:customers,id',
             'booking_date' => 'required|date|after_or_equal:today',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
             'start_time' => 'nullable|date_format:H:i',
             'estimated_hours' => 'nullable|integer|min:1',
             'pickup_address' => 'required|string|max:1000',
             'delivery_address' => 'required|string|max:1000',
+            'via_address' => 'nullable|string|max:1000',
             'pickup_postcode' => 'nullable|string|max:10',
             'delivery_postcode' => 'nullable|string|max:10',
             'job_description' => 'required|string|max:2000',
@@ -93,10 +96,35 @@ class BookingController extends Controller
             'services' => 'nullable|array',
             'services.*.service_id' => 'required_with:services|exists:service_types,id',
             'services.*.qty' => 'nullable|integer|min:1',
+            // New enhanced fields validation
+            'source' => 'nullable|string|max:255',
+            'contact_no' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'booking_type' => 'required|in:fixed,hourly',
+            'booked_hours' => 'nullable|integer|min:1',
+            'helpers_count' => 'nullable|integer|min:1',
+            'deposit' => 'nullable|numeric|min:0',
+            'hourly_rate' => 'nullable|numeric|min:0',
+            'details_shared_with_customer' => 'nullable|string|max:2000',
+            'total_fare' => 'nullable|numeric|min:0',
+            'payment_method' => 'nullable|in:cash,card,bank_transfer',
+            'discount' => 'nullable|numeric|min:0',
+            'discount_reason' => 'nullable|string|max:500',
+            'notes' => 'nullable|string|max:2000',
+            'review_link' => 'nullable|url|max:500',
+            'week_start' => 'nullable|date',
         ]);
 
         // Generate booking reference
         $bookingReference = 'TBR-' . strtoupper(Str::random(8));
+
+        // Calculate total fare based on booking type
+        $totalFare = 0;
+        if ($request->booking_type === 'fixed') {
+            $totalFare = $request->total_fare ?? 0;
+        } elseif ($request->booking_type === 'hourly' && $request->hourly_rate && $request->booked_hours) {
+            $totalFare = $request->hourly_rate * $request->booked_hours;
+        }
 
         $booking = Booking::create([
             'customer_id' => $request->customer_id,
@@ -107,10 +135,13 @@ class BookingController extends Controller
             'vehicle_id' => $request->vehicle_id,
             'booking_reference' => $bookingReference,
             'booking_date' => $request->booking_date,
+            'start_date' => $request->start_date,
+            'end_date' => $request->end_date,
             'start_time' => $request->start_time,
             'estimated_hours' => $request->estimated_hours,
             'pickup_address' => $request->pickup_address,
             'delivery_address' => $request->delivery_address,
+            'via_address' => $request->via_address,
             'pickup_postcode' => $request->pickup_postcode,
             'delivery_postcode' => $request->delivery_postcode,
             'job_description' => $request->job_description,
@@ -123,6 +154,23 @@ class BookingController extends Controller
             'company_commission_rate' => $request->company_commission_rate,
             'extra_hours' => $request->extra_hours,
             'extra_hours_rate' => $request->extra_hours_rate,
+            // New enhanced fields
+            'source' => $request->source,
+            'contact_no' => $request->contact_no,
+            'email' => $request->email,
+            'booking_type' => $request->booking_type,
+            'booked_hours' => $request->booked_hours,
+            'helpers_count' => $request->helpers_count ?? 1,
+            'deposit' => $request->deposit ?? 0,
+            'hourly_rate' => $request->hourly_rate,
+            'details_shared_with_customer' => $request->details_shared_with_customer,
+            'total_fare' => $totalFare,
+            'payment_method' => $request->payment_method,
+            'discount' => $request->discount ?? 0,
+            'discount_reason' => $request->discount_reason,
+            'notes' => $request->notes,
+            'review_link' => $request->review_link,
+            'week_start' => $request->week_start,
         ]);
 
         // Attach multiple porters if provided
@@ -140,6 +188,9 @@ class BookingController extends Controller
             $booking->extra_hours_amount = $booking->calculateExtraHoursAmount();
         }
 
+        // Calculate remaining amount
+        $booking->remaining_amount = $booking->calculateRemainingAmount();
+        $booking->total_earning_inc_deposit = $booking->calculateTotalEarning();
         $booking->save();
 
         // Update vehicle status if assigned

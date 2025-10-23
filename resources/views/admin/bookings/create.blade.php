@@ -32,7 +32,7 @@
             </div>
 
             {{-- Booking Date --}}
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-3">
               <label for="booking_date" class="form-label">Booking Date <span class="text-danger">*</span></label>
               <input type="date" name="booking_date" id="booking_date"
                      value="{{ old('booking_date', date('Y-m-d')) }}"
@@ -40,8 +40,26 @@
               @error('booking_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 
+            {{-- Start Date --}}
+            <div class="col-12 col-md-3">
+              <label for="start_date" class="form-label">Start Date</label>
+              <input type="date" name="start_date" id="start_date"
+                     value="{{ old('start_date') }}"
+                     class="form-control @error('start_date') is-invalid @enderror">
+              @error('start_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+
+            {{-- End Date --}}
+            <div class="col-12 col-md-3">
+              <label for="end_date" class="form-label">End Date</label>
+              <input type="date" name="end_date" id="end_date"
+                     value="{{ old('end_date') }}"
+                     class="form-control @error('end_date') is-invalid @enderror">
+              @error('end_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+
             {{-- Start Time --}}
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-3">
               <label for="start_time" class="form-label">Start Time</label>
               <input type="time" name="start_time" id="start_time"
                      value="{{ old('start_time') }}"
@@ -49,13 +67,52 @@
               @error('start_time')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 
-            {{-- Estimated Hours --}}
+            {{-- Source --}}
             <div class="col-12 col-md-4">
+              <label for="source" class="form-label">Source</label>
+              <input type="text" name="source" id="source"
+                     value="{{ old('source') }}"
+                     class="form-control @error('source') is-invalid @enderror"
+                     placeholder="Where did this booking come from?">
+              @error('source')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+
+            {{-- Contact No --}}
+            <div class="col-12 col-md-4">
+              <label for="contact_no" class="form-label">Contact No</label>
+              <input type="text" name="contact_no" id="contact_no"
+                     value="{{ old('contact_no') }}"
+                     class="form-control @error('contact_no') is-invalid @enderror"
+                     placeholder="Customer contact number">
+              @error('contact_no')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+
+            {{-- Email --}}
+            <div class="col-12 col-md-4">
+              <label for="email" class="form-label">Email</label>
+              <input type="email" name="email" id="email"
+                     value="{{ old('email') }}"
+                     class="form-control @error('email') is-invalid @enderror"
+                     placeholder="Customer email">
+              @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+
+            {{-- Estimated Hours --}}
+            <div class="col-12 col-md-6">
               <label for="estimated_hours" class="form-label">Estimated Hours</label>
               <input type="number" name="estimated_hours" id="estimated_hours" min="1"
                      value="{{ old('estimated_hours') }}"
                      class="form-control @error('estimated_hours') is-invalid @enderror">
               @error('estimated_hours')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+
+            {{-- Week Start --}}
+            <div class="col-12 col-md-6">
+              <label for="week_start" class="form-label">Week Start</label>
+              <input type="date" name="week_start" id="week_start"
+                     value="{{ old('week_start') }}"
+                     class="form-control @error('week_start') is-invalid @enderror">
+              @error('week_start')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
           </div>
         </div>
@@ -78,6 +135,13 @@
               <label for="delivery_address" class="form-label">Delivery Address <span class="text-danger">*</span></label>
               <textarea name="delivery_address" id="delivery_address" rows="3" class="form-control @error('delivery_address') is-invalid @enderror" required>{{ old('delivery_address') }}</textarea>
               @error('delivery_address')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+
+            {{-- Via Address --}}
+            <div class="col-12">
+              <label for="via_address" class="form-label">Via Address</label>
+              <textarea name="via_address" id="via_address" rows="2" class="form-control @error('via_address') is-invalid @enderror" placeholder="Optional: Address to visit on the way">{{ old('via_address') }}</textarea>
+              @error('via_address')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 
             {{-- Postcodes --}}
@@ -220,6 +284,138 @@
         </div>
       </div>
 
+      {{-- Booking Type and Pricing --}}
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title mb-3">Booking Type & Pricing</h5>
+
+          <div class="row g-3">
+            {{-- Booking Type --}}
+            <div class="col-12 col-md-6">
+              <label for="booking_type" class="form-label">Booking Type <span class="text-danger">*</span></label>
+              <select name="booking_type" id="booking_type" class="form-select @error('booking_type') is-invalid @enderror" required>
+                <option value="">Select booking type</option>
+                <option value="fixed" @selected(old('booking_type')=='fixed')>Fixed Price</option>
+                <option value="hourly" @selected(old('booking_type')=='hourly')>Hourly Rate</option>
+              </select>
+              @error('booking_type')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+
+            {{-- Helpers Count --}}
+            <div class="col-12 col-md-6">
+              <label for="helpers_count" class="form-label">Number of Helpers</label>
+              <input type="number" name="helpers_count" id="helpers_count" min="1" value="{{ old('helpers_count', 1) }}"
+                     class="form-control @error('helpers_count') is-invalid @enderror">
+              @error('helpers_count')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+
+            {{-- Fixed Price Fields --}}
+            <div id="fixed-price-fields" class="row g-3" style="display: none;">
+              <div class="col-12 col-md-6">
+                <label for="total_fare" class="form-label">Total Fare</label>
+                <input type="number" step="0.01" min="0" name="total_fare" id="total_fare"
+                       value="{{ old('total_fare') }}"
+                       class="form-control @error('total_fare') is-invalid @enderror">
+                @error('total_fare')<div class="invalid-feedback">{{ $message }}</div>@enderror
+              </div>
+              <div class="col-12 col-md-6">
+                <label for="booked_hours" class="form-label">Estimated Hours</label>
+                <input type="number" min="1" name="booked_hours" id="booked_hours"
+                       value="{{ old('booked_hours') }}"
+                       class="form-control @error('booked_hours') is-invalid @enderror">
+                @error('booked_hours')<div class="invalid-feedback">{{ $message }}</div>@enderror
+              </div>
+            </div>
+
+            {{-- Hourly Rate Fields --}}
+            <div id="hourly-rate-fields" class="row g-3" style="display: none;">
+              <div class="col-12 col-md-6">
+                <label for="hourly_rate" class="form-label">Hourly Rate</label>
+                <input type="number" step="0.01" min="0" name="hourly_rate" id="hourly_rate"
+                       value="{{ old('hourly_rate') }}"
+                       class="form-control @error('hourly_rate') is-invalid @enderror">
+                @error('hourly_rate')<div class="invalid-feedback">{{ $message }}</div>@enderror
+              </div>
+              <div class="col-12 col-md-6">
+                <label for="booked_hours" class="form-label">Total Hours</label>
+                <input type="number" min="1" name="booked_hours" id="booked_hours_hourly"
+                       value="{{ old('booked_hours') }}"
+                       class="form-control @error('booked_hours') is-invalid @enderror">
+                @error('booked_hours')<div class="invalid-feedback">{{ $message }}</div>@enderror
+              </div>
+            </div>
+
+            {{-- Deposit --}}
+            <div class="col-12 col-md-6">
+              <label for="deposit" class="form-label">Deposit</label>
+              <input type="number" step="0.01" min="0" name="deposit" id="deposit"
+                     value="{{ old('deposit', 0) }}"
+                     class="form-control @error('deposit') is-invalid @enderror">
+              @error('deposit')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+
+            {{-- Payment Method --}}
+            <div class="col-12 col-md-6">
+              <label for="payment_method" class="form-label">Payment Method</label>
+              <select name="payment_method" id="payment_method" class="form-select @error('payment_method') is-invalid @enderror">
+                <option value="">Select payment method</option>
+                <option value="cash" @selected(old('payment_method')=='cash')>Cash</option>
+                <option value="card" @selected(old('payment_method')=='card')>Card</option>
+                <option value="bank_transfer" @selected(old('payment_method')=='bank_transfer')>Bank Transfer</option>
+              </select>
+              @error('payment_method')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+
+            {{-- Discount --}}
+            <div class="col-12 col-md-6">
+              <label for="discount" class="form-label">Discount Amount</label>
+              <input type="number" step="0.01" min="0" name="discount" id="discount"
+                     value="{{ old('discount', 0) }}"
+                     class="form-control @error('discount') is-invalid @enderror">
+              @error('discount')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+
+            {{-- Discount Reason --}}
+            <div class="col-12 col-md-6">
+              <label for="discount_reason" class="form-label">Discount Reason</label>
+              <input type="text" name="discount_reason" id="discount_reason"
+                     value="{{ old('discount_reason') }}"
+                     class="form-control @error('discount_reason') is-invalid @enderror"
+                     placeholder="Reason for discount">
+              @error('discount_reason')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+
+            {{-- Details Shared with Customer --}}
+            <div class="col-12">
+              <label for="details_shared_with_customer" class="form-label">Details Shared with Customer</label>
+              <textarea name="details_shared_with_customer" id="details_shared_with_customer" rows="3"
+                        class="form-control @error('details_shared_with_customer') is-invalid @enderror"
+                        placeholder="Details that will be shared with the customer">{{ old('details_shared_with_customer') }}</textarea>
+              @error('details_shared_with_customer')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+
+            {{-- Notes --}}
+            <div class="col-12">
+              <label for="notes" class="form-label">Notes</label>
+              <textarea name="notes" id="notes" rows="3"
+                        class="form-control @error('notes') is-invalid @enderror"
+                        placeholder="Internal notes about this booking">{{ old('notes') }}</textarea>
+              @error('notes')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+
+            {{-- Review Link --}}
+            <div class="col-12">
+              <label for="review_link" class="form-label">Review Link</label>
+              <input type="url" name="review_link" id="review_link"
+                     value="{{ old('review_link') }}"
+                     class="form-control @error('review_link') is-invalid @enderror"
+                     placeholder="Link to customer review">
+              @error('review_link')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+          </div>
+        </div>
+      </div>
+
       {{-- Manual Amount Entry --}}
       <div class="card">
         <div class="card-body">
@@ -299,12 +495,31 @@
     const isCompanyBooking = document.getElementById('is_company_booking');
     const companyCommissionSection = document.getElementById('company-commission-section');
 
+    // Booking type toggle
+    const bookingType = document.getElementById('booking_type');
+    const fixedPriceFields = document.getElementById('fixed-price-fields');
+    const hourlyRateFields = document.getElementById('hourly-rate-fields');
+
     // Extra hours calculation
     const extraHours = document.getElementById('extra_hours');
     const extraHoursRate = document.getElementById('extra_hours_rate');
     const extraHoursTotal = document.getElementById('extra_hours_total');
 
     function toFixed2(v){ return Number(v || 0).toFixed(2); }
+
+    // Booking type toggle
+    bookingType?.addEventListener('change', function(){
+      if (this.value === 'fixed') {
+        fixedPriceFields.style.display = 'block';
+        hourlyRateFields.style.display = 'none';
+      } else if (this.value === 'hourly') {
+        fixedPriceFields.style.display = 'none';
+        hourlyRateFields.style.display = 'block';
+      } else {
+        fixedPriceFields.style.display = 'none';
+        hourlyRateFields.style.display = 'none';
+      }
+    });
 
     // Company booking toggle
     isCompanyBooking?.addEventListener('change', function(){
@@ -358,6 +573,15 @@
     calculateExtraHoursTotal();
     if (isCompanyBooking?.checked) {
       companyCommissionSection.style.display = 'block';
+    }
+    
+    // Initialize booking type fields
+    if (bookingType?.value === 'fixed') {
+      fixedPriceFields.style.display = 'block';
+      hourlyRateFields.style.display = 'none';
+    } else if (bookingType?.value === 'hourly') {
+      fixedPriceFields.style.display = 'none';
+      hourlyRateFields.style.display = 'block';
     }
 
   })();
