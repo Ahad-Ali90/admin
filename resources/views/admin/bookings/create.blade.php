@@ -442,13 +442,45 @@
             </div>
           </div>
 
-          {{-- Company Commission --}}
+          {{-- Company Information --}}
           <div id="company-commission-section" class="row g-3 mt-3" style="display: none;">
+            <div class="col-12">
+              <h6 class="text-primary mb-3">Company Information</h6>
+            </div>
+            
+            <div class="col-12 col-md-6">
+              <label for="company_name" class="form-label">Company Name</label>
+              <input type="text" name="company_name" id="company_name" 
+                     value="{{ old('company_name') }}"
+                     class="form-control @error('company_name') is-invalid @enderror"
+                     placeholder="Enter company name">
+              @error('company_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label for="company_phone" class="form-label">Company Phone</label>
+              <input type="text" name="company_phone" id="company_phone" 
+                     value="{{ old('company_phone') }}"
+                     class="form-control @error('company_phone') is-invalid @enderror"
+                     placeholder="Enter company phone number">
+              @error('company_phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+
             <div class="col-12 col-md-6">
               <label for="company_commission_rate" class="form-label">Commission Rate (%)</label>
               <input type="number" step="0.01" min="0" max="100" id="company_commission_rate" 
-                     name="company_commission_rate" class="form-control" 
+                     name="company_commission_rate" class="form-control @error('company_commission_rate') is-invalid @enderror" 
                      value="{{ old('company_commission_rate') }}">
+              @error('company_commission_rate')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label for="company_commission_amount" class="form-label">Commission Amount (£)</label>
+              <input type="number" step="0.01" min="0" id="company_commission_amount" 
+                     name="company_commission_amount" class="form-control @error('company_commission_amount') is-invalid @enderror" 
+                     value="{{ old('company_commission_amount') }}"
+                     placeholder="Enter commission amount">
+              @error('company_commission_amount')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
           </div>
 

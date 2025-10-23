@@ -41,6 +41,8 @@ class Booking extends Model
         'porter_notes',
         'total_amount',
         'is_company_booking',
+        'company_name',
+        'company_phone',
         'company_commission_rate',
         'company_commission_amount',
         'extra_hours_rate',
