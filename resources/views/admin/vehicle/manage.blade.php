@@ -246,8 +246,11 @@
         <td>${esc(v.mileage)}</td>
         <td class="text-end">
           <div class="btn-group">
-            <button class="btn btn-sm btn-outline-secondary btn-edit"><i class="bi bi-pencil"></i></button>
-            <button class="btn btn-sm btn-outline-danger btn-del"><i class="bi bi-trash"></i></button>
+            <a href="{{ url('admin/vehicles') }}/${v.id}/expenses" class="btn btn-sm btn-outline-info" title="View Expenses">
+              <i class="bi bi-receipt"></i>
+            </a>
+            <button class="btn btn-sm btn-outline-secondary btn-edit" title="Edit"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-sm btn-outline-danger btn-del" title="Delete"><i class="bi bi-trash"></i></button>
           </div>
         </td>
       </tr>`;

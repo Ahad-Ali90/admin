@@ -16,17 +16,13 @@ class Customer extends Model
         'phone',
         'address',
         'postcode',
-        'customer_type',
-        'company_name',
         'customer_source',
         'notes',
     ];
 
     protected function casts(): array
     {
-        return [
-            'customer_type' => 'string',
-        ];
+        return [];
     }
 
     // Relationships

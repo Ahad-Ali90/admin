@@ -3,9 +3,17 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\BookingController;
+use App\Http\Controllers\Admin\BookingExpenseController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\VehicleController;
 use App\Http\Controllers\Admin\StaffController;
+use App\Http\Controllers\Admin\CompanyController;
+use App\Http\Controllers\Admin\CalendarController;
+use App\Http\Controllers\Admin\FinanceController;
+use App\Http\Controllers\Admin\TaskController;
+use App\Http\Controllers\Admin\LeadTrackerController;
+use App\Http\Controllers\Admin\ProfitLossController;
+use App\Http\Controllers\Admin\LeadSourceController;
 use App\Http\Controllers\ServiceTypeController;
 use Illuminate\Support\Facades\Route;
 
@@ -18,16 +26,53 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified'])->group(
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     
+    // Calendar
+    Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
+    Route::get('/calendar/bookings', [CalendarController::class, 'getBookings'])->name('calendar.bookings');
+    
+    // Finance / Profit & Loss
+    Route::get('/finance', [FinanceController::class, 'index'])->name('finance.index');
+    
+    // Profit & Loss Report
+    Route::get('/profit-loss', [ProfitLossController::class, 'index'])->name('profit-loss.index');
+    
+    // Lead Tracker
+    Route::get('/leads', [LeadTrackerController::class, 'index'])->name('leads.index');
+    
+    // Tasks (AJAX Single-Page)
+    Route::get('/tasks/manage', [TaskController::class, 'manage'])->name('tasks.manage');
+    Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
+    Route::post('/tasks', [TaskController::class, 'store'])->name('tasks.store');
+    Route::get('/tasks/{id}', [TaskController::class, 'show'])->name('tasks.show');
+    Route::put('/tasks/{id}', [TaskController::class, 'update'])->name('tasks.update');
+    Route::delete('/tasks/{id}', [TaskController::class, 'destroy'])->name('tasks.destroy');
+    Route::post('/tasks/{task}/update-status', [TaskController::class, 'updateStatus'])->name('tasks.update-status');
+    
     // Bookings
     Route::resource('bookings', BookingController::class);
+    Route::get('/bookings/{booking}/print', [BookingController::class, 'print'])->name('bookings.print');
     Route::post('/bookings/{booking}/extra-hours', [BookingController::class, 'addExtraHours'])->name('bookings.extra-hours');
     Route::post('/bookings/{booking}/update-status', [BookingController::class, 'updateStatus'])->name('bookings.update-status');
     Route::post('/bookings/{booking}/start', [BookingController::class, 'start'])->name('bookings.start');
     Route::post('/bookings/{booking}/complete', [BookingController::class, 'complete'])->name('bookings.complete');
     
+    // Booking Expenses
+    Route::get('/bookings/{booking}/expenses', [BookingExpenseController::class, 'index'])->name('bookings.expenses');
+    Route::post('/bookings/{booking}/expenses', [BookingExpenseController::class, 'store'])->name('bookings.expenses.store');
+    Route::put('/bookings/{booking}/expenses/{expense}', [BookingExpenseController::class, 'update'])->name('bookings.expenses.update');
+    Route::delete('/bookings/{booking}/expenses/{expense}', [BookingExpenseController::class, 'destroy'])->name('bookings.expenses.destroy');
+    
     // Customers
     Route::resource('customers', CustomerController::class);
     
+    // Companies (AJAX CRUD)
+    Route::get('/companies/manage', [CompanyController::class, 'manage'])->name('companies.manage');
+    Route::get('/companies/{company}/details', [CompanyController::class, 'details'])->name('companies.details');
+    Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index');
+    Route::post('/companies', [CompanyController::class, 'store'])->name('companies.store');
+    Route::get('/companies/{id}', [CompanyController::class, 'show'])->name('companies.show');
+    Route::put('/companies/{id}', [CompanyController::class, 'update'])->name('companies.update');
+    Route::delete('/companies/{id}', [CompanyController::class, 'destroy'])->name('companies.destroy');
     
     Route::get('/service-types/manage', [ServiceTypeController::class, 'manage'])->name('service_types.manage');
 
@@ -37,9 +82,24 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified'])->group(
     Route::get('/service-types/{id}',     [ServiceTypeController::class, 'show'])->name('service_types.show');
     Route::put('/service-types/{id}',     [ServiceTypeController::class, 'update'])->name('service_types.update');
     Route::delete('/service-types/{id}',  [ServiceTypeController::class, 'destroy'])->name('service_types.destroy');
+    
+    // Lead Sources (AJAX CRUD)
+    Route::get('/lead-sources/manage', [LeadSourceController::class, 'manage'])->name('lead-sources.manage');
+    Route::get('/lead-sources', [LeadSourceController::class, 'index'])->name('lead-sources.index');
+    Route::post('/lead-sources', [LeadSourceController::class, 'store'])->name('lead-sources.store');
+    Route::get('/lead-sources/{id}', [LeadSourceController::class, 'show'])->name('lead-sources.show');
+    Route::put('/lead-sources/{id}', [LeadSourceController::class, 'update'])->name('lead-sources.update');
+    Route::delete('/lead-sources/{id}', [LeadSourceController::class, 'destroy'])->name('lead-sources.destroy');
 
     // Single-page UI
     Route::get('/vehicles/manage', [VehicleController::class, 'manage'])->name('vehicles.manage');
+    Route::get('/vehicles/{vehicle}/details', [VehicleController::class, 'details'])->name('vehicles.details');
+    
+    // Vehicle Expenses
+    Route::get('/vehicles/{vehicle}/expenses', [\App\Http\Controllers\Admin\VehicleExpenseController::class, 'index'])->name('vehicles.expenses');
+    Route::post('/vehicles/{vehicle}/expenses', [\App\Http\Controllers\Admin\VehicleExpenseController::class, 'store'])->name('vehicles.expenses.store');
+    Route::put('/vehicles/{vehicle}/expenses/{expense}', [\App\Http\Controllers\Admin\VehicleExpenseController::class, 'update'])->name('vehicles.expenses.update');
+    Route::delete('/vehicles/{vehicle}/expenses/{expense}', [\App\Http\Controllers\Admin\VehicleExpenseController::class, 'destroy'])->name('vehicles.expenses.destroy');
 
     // JSON CRUD
     Route::get('/vehicles',        [VehicleController::class, 'index'])->name('vehicles.index');   // JSON list

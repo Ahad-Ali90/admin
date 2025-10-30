@@ -39,28 +39,6 @@
                      class="form-control @error('phone') is-invalid @enderror" required>
               @error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
-
-            <!-- Customer Type -->
-            <div class="col-12 col-md-6">
-              <label for="customer_type" class="form-label">Customer Type <span class="text-danger">*</span></label>
-              <select name="customer_type" id="customer_type"
-                      class="form-select @error('customer_type') is-invalid @enderror" required>
-                <option value="">Select type</option>
-                <option value="individual" @selected(old('customer_type')=='individual')>Individual</option>
-                <option value="business"   @selected(old('customer_type')=='business')>Business</option>
-              </select>
-              @error('customer_type')<div class="invalid-feedback">{{ $message }}</div>@enderror
-            </div>
-          </div>
-
-          <!-- Company Name (conditional) -->
-          <div id="company_name_field" class="row g-3 mt-1" style="display:none;">
-            <div class="col-12">
-              <label for="company_name" class="form-label">Company Name</label>
-              <input type="text" name="company_name" id="company_name" value="{{ old('company_name') }}"
-                     class="form-control @error('company_name') is-invalid @enderror">
-              @error('company_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
-            </div>
           </div>
         </div>
       </div>
@@ -133,23 +111,4 @@
     </form>
   </div>
 
-  @push('scripts')
-  <script>
-    (function(){
-      const typeSel = document.getElementById('customer_type');
-      const field   = document.getElementById('company_name_field');
-      const input   = document.getElementById('company_name');
-
-      function toggleCompany(){
-        const isBiz = typeSel.value === 'business';
-        field.style.display = isBiz ? 'flex' : 'none';
-        input.required = isBiz;
-        if(!isBiz){ input.value = ''; }
-      }
-
-      typeSel.addEventListener('change', toggleCompany);
-      document.addEventListener('DOMContentLoaded', toggleCompany);
-    })();
-  </script>
-  @endpush
 </x-admin.layouts.app>

@@ -42,6 +42,25 @@ class VehicleController extends Controller
         return response()->json($vehicles);
     }
 
+    /**
+     * Display vehicle details page
+     */
+    public function details(Vehicle $vehicle)
+    {
+        $vehicle->load(['vehicleExpenses', 'bookings']);
+        
+        $stats = [
+            'total_expenses' => $vehicle->total_expenses,
+            'monthly_average' => $vehicle->monthly_expense_average,
+            'expenses_by_type' => $vehicle->expenses_by_type,
+            'total_bookings' => $vehicle->total_bookings,
+            'total_revenue' => $vehicle->total_revenue,
+            'net_profit' => $vehicle->net_profit,
+        ];
+
+        return view('admin.vehicle.details', compact('vehicle', 'stats'));
+    }
+
     public function show($id)
     {
         $v = Vehicle::findOrFail($id);

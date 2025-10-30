@@ -61,8 +61,10 @@ class BookingController extends Controller
         $porters = User::where('role', 'porter')->where('status', 'active')->get();
         $vehicles = Vehicle::where('status', 'available')->get();
         $services = ServiceType::get();
+        $companies = \App\Models\Company::orderBy('name')->get();
+        $leadSources = \App\Models\LeadSource::active()->ordered()->get();
 
-        return view('admin.bookings.create', compact('customers', 'drivers', 'porters', 'vehicles', 'services'));
+        return view('admin.bookings.create', compact('customers', 'drivers', 'porters', 'vehicles', 'services', 'companies', 'leadSources'));
     }
 
     /**
@@ -70,13 +72,34 @@ class BookingController extends Controller
      */
     public function store(Request $request)
     {
+        // Debug logging
+        \Log::info('BookingController@store called', [
+            'user_id' => auth()->id(),
+            'status' => $request->status,
+            'customer_id' => $request->customer_id,
+        ]);
+        
+        // For not_converted status, allow any date (inquiry can be from past)
+        $bookingDateRule = $request->status === 'not_converted' 
+            ? 'required|date' 
+            : 'required|date|after_or_equal:today';
+        
+        // For not_converted, manual_amount can be 0 (no quote given)
+        $manualAmountRule = $request->status === 'not_converted'
+            ? 'nullable|numeric|min:0'
+            : 'required|numeric|min:0';
+        
+        // For not_converted, booking_type is not critical
+        $bookingTypeRule = $request->status === 'not_converted'
+            ? 'nullable|in:fixed,hourly'
+            : 'required|in:fixed,hourly';
+            
         $request->validate([
             'customer_id' => 'required|exists:customers,id',
-            'booking_date' => 'required|date|after_or_equal:today',
+            'booking_date' => $bookingDateRule,
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'start_time' => 'nullable|date_format:H:i',
-            'estimated_hours' => 'nullable|integer|min:1',
             'pickup_address' => 'required|string|max:1000',
             'delivery_address' => 'required|string|max:1000',
             'via_address' => 'nullable|string|max:1000',
@@ -88,11 +111,9 @@ class BookingController extends Controller
             'vehicle_id' => 'nullable|exists:vehicles,id',
             'porter_ids' => 'nullable|array',
             'porter_ids.*' => 'nullable|exists:users,id',
-            'manual_amount' => 'required|numeric|min:0',
+            'manual_amount' => $manualAmountRule,
             'is_company_booking' => 'nullable|boolean',
-            'company_name' => 'nullable|string|max:255',
-            'company_phone' => 'nullable|string|max:20',
-            'company_commission_rate' => 'nullable|numeric|min:0|max:100',
+            'company_id' => 'nullable|exists:companies,id',
             'company_commission_amount' => 'nullable|numeric|min:0',
             'extra_hours' => 'nullable|integer|min:0',
             'extra_hours_rate' => 'nullable|numeric|min:0',
@@ -101,9 +122,7 @@ class BookingController extends Controller
             'services.*.qty' => 'nullable|integer|min:1',
             // New enhanced fields validation
             'source' => 'nullable|string|max:255',
-            'contact_no' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:255',
-            'booking_type' => 'required|in:fixed,hourly',
+            'booking_type' => $bookingTypeRule,
             'booked_hours' => 'nullable|integer|min:1',
             'helpers_count' => 'nullable|integer|min:1',
             'deposit' => 'nullable|numeric|min:0',
@@ -114,8 +133,8 @@ class BookingController extends Controller
             'discount' => 'nullable|numeric|min:0',
             'discount_reason' => 'nullable|string|max:500',
             'notes' => 'nullable|string|max:2000',
-            'review_link' => 'nullable|url|max:500',
-            'week_start' => 'nullable|date',
+            'status' => 'nullable|in:pending,confirmed,in_progress,completed,cancelled,not_converted',
+            'lead_source' => 'nullable|in:website,phone,email,whatsapp,facebook,instagram,referral,walk_in,other',
         ]);
 
         // Generate booking reference
@@ -149,22 +168,18 @@ class BookingController extends Controller
             'delivery_postcode' => $request->delivery_postcode,
             'job_description' => $request->job_description,
             'special_instructions' => $request->special_instructions,
-            'status' => ($request->driver_id && $request->porter_ids && $request->vehicle_id) ? 'confirmed' : 'pending',
-            'total_amount' => $request->manual_amount,
+            'status' => $request->status ?? (($request->driver_id && $request->porter_ids && $request->vehicle_id) ? 'confirmed' : 'pending'),
+            'total_amount' => $request->manual_amount ?? 0,
             'is_manual_amount' => true,
-            'manual_amount' => $request->manual_amount,
+            'manual_amount' => $request->manual_amount ?? 0,
             'is_company_booking' => $request->boolean('is_company_booking'),
-            'company_name' => $request->company_name,
-            'company_phone' => $request->company_phone,
-            'company_commission_rate' => $request->company_commission_rate,
+            'company_id' => $request->company_id,
             'company_commission_amount' => $request->company_commission_amount,
             'extra_hours' => $request->extra_hours,
             'extra_hours_rate' => $request->extra_hours_rate,
             // New enhanced fields
             'source' => $request->source,
-            'contact_no' => $request->contact_no,
-            'email' => $request->email,
-            'booking_type' => $request->booking_type,
+            'booking_type' => $request->booking_type ?? 'fixed',
             'booked_hours' => $request->booked_hours,
             'helpers_count' => $request->helpers_count ?? 1,
             'deposit' => $request->deposit ?? 0,
@@ -177,6 +192,7 @@ class BookingController extends Controller
             'notes' => $request->notes,
             'review_link' => $request->review_link,
             'week_start' => $request->week_start,
+            'lead_source' => $request->lead_source ?? 'phone',
         ]);
 
         // Attach multiple porters if provided
@@ -234,7 +250,7 @@ class BookingController extends Controller
     public function updateStatus(Request $request, Booking $booking)
     {
         $request->validate([
-            'status' => 'required|in:pending,confirmed,in_progress,completed,cancelled',
+            'status' => 'required|in:pending,confirmed,in_progress,completed,cancelled,not_converted',
             'notes' => 'nullable|string|max:1000',
         ]);
 
@@ -354,6 +370,16 @@ class BookingController extends Controller
     }
 
     /**
+     * Show print view for booking
+     */
+    public function print(Booking $booking)
+    {
+        $booking->load(['customer', 'driver', 'porter', 'porters', 'vehicle', 'services', 'expenses.paidToUser']);
+
+        return view('admin.bookings.print', compact('booking'));
+    }
+
+    /**
      * Show the form for editing the specified resource.
      */
     public function edit(Booking $booking)
@@ -363,10 +389,12 @@ class BookingController extends Controller
         $porters = User::where('role', 'porter')->where('status', 'active')->get();
         $vehicles = Vehicle::whereIn('status', ['available', 'in_use'])->get();
         $services = ServiceType::get();
+        $companies = \App\Models\Company::orderBy('name')->get();
+        $leadSources = \App\Models\LeadSource::active()->ordered()->get();
 
         $booking->load(['services', 'porters']);
 
-        return view('admin.bookings.edit', compact('booking', 'customers', 'drivers', 'porters', 'vehicles', 'services'));
+        return view('admin.bookings.create', compact('booking', 'customers', 'drivers', 'porters', 'vehicles', 'services', 'companies', 'leadSources'));
     }
 
     /**
@@ -374,13 +402,20 @@ class BookingController extends Controller
      */
     public function update(Request $request, Booking $booking)
     {
+        // For not_converted status, no date restrictions
+        $bookingDateRule = $request->status === 'not_converted' 
+            ? 'required|date' 
+            : 'required|date';
+            
         $request->validate([
             'customer_id' => 'required|exists:customers,id',
-            'booking_date' => 'required|date',
+            'booking_date' => $bookingDateRule,
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
             'start_time' => 'nullable|date_format:H:i',
-            'estimated_hours' => 'nullable|integer|min:1',
             'pickup_address' => 'required|string|max:1000',
             'delivery_address' => 'required|string|max:1000',
+            'via_address' => 'nullable|string|max:1000',
             'pickup_postcode' => 'nullable|string|max:10',
             'delivery_postcode' => 'nullable|string|max:10',
             'job_description' => 'required|string|max:2000',
@@ -389,21 +424,38 @@ class BookingController extends Controller
             'vehicle_id' => 'nullable|exists:vehicles,id',
             'porter_ids' => 'nullable|array',
             'porter_ids.*' => 'nullable|exists:users,id',
-            'manual_amount' => 'required|numeric|min:0',
             'is_company_booking' => 'nullable|boolean',
-            'company_name' => 'nullable|string|max:255',
-            'company_phone' => 'nullable|string|max:20',
-            'company_commission_rate' => 'nullable|numeric|min:0|max:100',
+            'company_id' => 'nullable|exists:companies,id',
             'company_commission_amount' => 'nullable|numeric|min:0',
             'extra_hours' => 'nullable|integer|min:0',
             'extra_hours_rate' => 'nullable|numeric|min:0',
             'services' => 'nullable|array',
             'services.*.service_id' => 'required_with:services|exists:service_types,id',
-            'services.*.qty' => 'nullable|integer|min:1',
+            // New enhanced fields validation
+            'source' => 'nullable|string|max:255',
+            'booking_type' => 'required|in:fixed,hourly',
+            'booked_hours' => 'nullable|integer|min:1',
+            'helpers_count' => 'nullable|integer|min:1',
+            'deposit' => 'nullable|numeric|min:0',
+            'hourly_rate' => 'nullable|numeric|min:0',
+            'details_shared_with_customer' => 'nullable|string|max:2000',
+            'total_fare' => 'nullable|numeric|min:0',
+            'payment_method' => 'nullable|in:cash,card,bank_transfer',
+            'discount' => 'nullable|numeric|min:0',
+            'discount_reason' => 'nullable|string|max:500',
+            'notes' => 'nullable|string|max:2000',
         ]);
 
         // Store old vehicle ID to update its status
         $oldVehicleId = $booking->vehicle_id;
+
+        // Calculate total fare based on booking type
+        $totalFare = 0;
+        if ($request->booking_type === 'fixed') {
+            $totalFare = $request->total_fare ?? 0;
+        } elseif ($request->booking_type === 'hourly' && $request->hourly_rate && $request->booked_hours) {
+            $totalFare = $request->hourly_rate * $request->booked_hours;
+        }
 
         $booking->update([
             'customer_id' => $request->customer_id,
@@ -412,24 +464,36 @@ class BookingController extends Controller
             'porter_ids' => $request->porter_ids,
             'vehicle_id' => $request->vehicle_id,
             'booking_date' => $request->booking_date,
+            'start_date' => $request->start_date,
+            'end_date' => $request->end_date,
             'start_time' => $request->start_time,
-            'estimated_hours' => $request->estimated_hours,
             'pickup_address' => $request->pickup_address,
             'delivery_address' => $request->delivery_address,
+            'via_address' => $request->via_address,
             'pickup_postcode' => $request->pickup_postcode,
             'delivery_postcode' => $request->delivery_postcode,
             'job_description' => $request->job_description,
             'special_instructions' => $request->special_instructions,
-            'total_amount' => $request->manual_amount,
-            'is_manual_amount' => true,
-            'manual_amount' => $request->manual_amount,
             'is_company_booking' => $request->boolean('is_company_booking'),
-            'company_name' => $request->company_name,
-            'company_phone' => $request->company_phone,
-            'company_commission_rate' => $request->company_commission_rate,
+            'company_id' => $request->company_id,
             'company_commission_amount' => $request->company_commission_amount,
             'extra_hours' => $request->extra_hours,
             'extra_hours_rate' => $request->extra_hours_rate,
+            // New enhanced fields
+            'source' => $request->source,
+            'booking_type' => $request->booking_type ?? 'fixed',
+            'booked_hours' => $request->booked_hours,
+            'helpers_count' => $request->helpers_count ?? 1,
+            'deposit' => $request->deposit ?? 0,
+            'hourly_rate' => $request->hourly_rate,
+            'details_shared_with_customer' => $request->details_shared_with_customer,
+            'total_fare' => $totalFare,
+            'payment_method' => $request->payment_method,
+            'discount' => $request->discount ?? 0,
+            'discount_reason' => $request->discount_reason,
+            'notes' => $request->notes,
+            'lead_source' => $request->lead_source ?? $booking->lead_source ?? 'phone',
+            'status' => $request->status ?? $booking->status,
         ]);
 
         // Handle porters
@@ -444,10 +508,9 @@ class BookingController extends Controller
         if ($request->services) {
             foreach ($request->services as $serviceData) {
                 $service = ServiceType::find($serviceData['service_id']);
-                $quantity = $serviceData['qty'] ?? 1;
 
                 $booking->services()->attach($service->id, [
-                    'quantity' => $quantity,
+                    'quantity' => 1, // Default quantity
                     'unit_rate' => 0, // No pricing in service types anymore
                     'total_amount' => 0, // No pricing in service types anymore
                 ]);
@@ -455,8 +518,8 @@ class BookingController extends Controller
         }
 
         // Calculate company commission if applicable
-        if ($booking->is_company_booking && $booking->company_commission_rate) {
-            $booking->company_commission_amount = $booking->calculateCompanyCommission();
+        if ($booking->is_company_booking && $booking->company_commission_amount) {
+            // Commission is already set from the form
         }
 
         // Calculate extra hours amount if applicable
@@ -464,6 +527,9 @@ class BookingController extends Controller
             $booking->extra_hours_amount = $booking->calculateExtraHoursAmount();
         }
 
+        // Calculate remaining amount
+        $booking->remaining_amount = $booking->calculateRemainingAmount();
+        $booking->total_earning_inc_deposit = $booking->calculateTotalEarning();
         $booking->save();
 
         // Update vehicle statuses

@@ -21,6 +21,7 @@
     .badge-inprog    { background:#eef2ff; color:#3730a3; }      /* indigo-50 */
     .badge-completed { background:#ecfdf5; color:#065f46; }      /* emerald-50 */
     .badge-cancelled { background:#fef2f2; color:#991b1b; }      /* red-50 */
+    .badge-not-converted { background:#f3f4f6; color:#000000; }  /* gray-100 / black */
     .text-truncate-1 { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .text-truncate-2 {
       display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
@@ -89,12 +90,13 @@
         @foreach($bookings as $booking)
           @php
             $badgeClass = match($booking->status){
-              'pending'     => 'badge-pending',
-              'confirmed'   => 'badge-confirmed',
-              'in_progress' => 'badge-inprog',
-              'completed'   => 'badge-completed',
-              'cancelled'   => 'badge-cancelled',
-              default       => 'badge-soft'
+              'pending'       => 'badge-pending',
+              'confirmed'     => 'badge-confirmed',
+              'in_progress'   => 'badge-inprog',
+              'completed'     => 'badge-completed',
+              'cancelled'     => 'badge-cancelled',
+              'not_converted' => 'badge-not-converted',
+              default         => 'badge-soft'
             };
           @endphp
 
@@ -117,7 +119,11 @@
                   <div class="row g-2 mt-2 text-secondary small">
                     <div class="col-auto">
                       <i class="bi bi-calendar2-event me-1"></i>
-                      {{ $booking->booking_date->format('M d, Y') }}
+                      @if($booking->start_date)
+                        {{ $booking->start_date->format('M d, Y') }}
+                      @else
+                        {{ $booking->booking_date->format('M d, Y') }}
+                      @endif
                     </div>
                     <div class="col-12 col-md-auto text-truncate-1">
                       <i class="bi bi-geo-alt me-1"></i>
@@ -125,8 +131,32 @@
                     </div>
                     <div class="col-auto">
                       <i class="bi bi-cash-coin me-1"></i>
-                      £{{ number_format($booking->final_amount, 2) }}
+                      £{{ number_format($booking->total_fare, 2) }}
                     </div>
+                    @if($booking->is_company_booking && $booking->company_commission_amount > 0)
+                      <div class="col-auto">
+                        <i class="bi bi-building me-1"></i>
+                        Commission: £{{ number_format($booking->company_commission_amount, 2) }}
+                      </div>
+                    @endif
+                    @if($booking->discount > 0)
+                      <div class="col-auto">
+                        <i class="bi bi-percent me-1"></i>
+                        Discount: £{{ number_format($booking->discount, 2) }}
+                      </div>
+                    @endif
+                    @if($booking->deposit > 0)
+                      <div class="col-auto">
+                        <i class="bi bi-credit-card me-1"></i>
+                        Deposit: £{{ number_format($booking->deposit, 2) }}
+                      </div>
+                    @endif
+                    @if($booking->remaining_amount > 0)
+                      <div class="col-auto">
+                        <i class="bi bi-wallet me-1"></i>
+                        Remaining: £{{ number_format($booking->remaining_amount, 2) }}
+                      </div>
+                    @endif
                   </div>
 
                   @if($booking->driver || $booking->porter_names)

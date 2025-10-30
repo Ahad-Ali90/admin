@@ -50,9 +50,9 @@ class Vehicle extends Model
         return $this->hasMany(Booking::class);
     }
 
-    public function expenses(): HasMany
+    public function vehicleExpenses(): HasMany
     {
-        return $this->hasMany(Expense::class);
+        return $this->hasMany(VehicleExpense::class);
     }
 
     // Helper methods
@@ -90,5 +90,50 @@ class Vehicle extends Model
     public function getFullNameAttribute(): string
     {
         return "{$this->year} {$this->make} {$this->model} ({$this->registration_number})";
+    }
+
+    // Expense Analytics
+    public function getTotalExpensesAttribute(): float
+    {
+        return $this->vehicleExpenses()->sum('amount');
+    }
+
+    public function getExpensesByTypeAttribute(): array
+    {
+        return $this->vehicleExpenses()
+            ->selectRaw('expense_type, SUM(amount) as total')
+            ->groupBy('expense_type')
+            ->pluck('total', 'expense_type')
+            ->toArray();
+    }
+
+    public function getMonthlyExpenseAverageAttribute(): float
+    {
+        $firstExpense = $this->vehicleExpenses()->orderBy('expense_date')->first();
+        if (!$firstExpense) {
+            return 0;
+        }
+        
+        $monthsSinceFirst = max(1, $firstExpense->expense_date->diffInMonths(now()));
+        return $this->getTotalExpensesAttribute() / $monthsSinceFirst;
+    }
+
+    public function getTotalBookingsAttribute(): int
+    {
+        return $this->bookings()->count();
+    }
+
+    public function getTotalRevenueAttribute(): float
+    {
+        $totalRevenue = 0;
+        foreach ($this->bookings as $booking) {
+            $totalRevenue += $booking->getFinalTotalFare() + ($booking->extra_hours_amount ?? 0);
+        }
+        return $totalRevenue;
+    }
+
+    public function getNetProfitAttribute(): float
+    {
+        return $this->getTotalRevenueAttribute() - $this->getTotalExpensesAttribute();
     }
 }

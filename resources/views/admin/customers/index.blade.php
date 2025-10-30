@@ -8,7 +8,76 @@
       display:inline-flex;align-items:center;justify-content:center;
       background:#e9ecef;color:#495057;font-weight:600
     }
-    .badge-business{background:#eef2ff;color:#3730a3}  /* soft indigo */
+
+    /* Dark Mode Support */
+    [data-theme="dark"] .card {
+      background: var(--card-bg) !important;
+      color: var(--text-color) !important;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    [data-theme="dark"] .card-body {
+      background: var(--card-bg) !important;
+      color: var(--text-color) !important;
+    }
+
+    [data-theme="dark"] .card-body.border-top {
+      border-top-color: var(--border-color) !important;
+    }
+
+    [data-theme="dark"] h1,
+    [data-theme="dark"] h3,
+    [data-theme="dark"] h5,
+    [data-theme="dark"] h6 {
+      color: var(--text-color) !important;
+    }
+
+    [data-theme="dark"] .text-secondary,
+    [data-theme="dark"] .small.text-secondary {
+      color: var(--text-color) !important;
+      opacity: 0.7;
+    }
+
+    [data-theme="dark"] .list-group-item {
+      background: var(--card-bg) !important;
+      color: var(--text-color) !important;
+      border-color: var(--border-color) !important;
+    }
+
+    [data-theme="dark"] .list-group-item:hover {
+      background: var(--hover-bg) !important;
+    }
+
+    [data-theme="dark"] .avatar {
+      background: var(--hover-bg) !important;
+      color: var(--text-color) !important;
+    }
+
+    [data-theme="dark"] .form-label {
+      color: var(--text-color) !important;
+    }
+
+    [data-theme="dark"] .form-control {
+      background: var(--input-bg) !important;
+      color: var(--text-color) !important;
+      border-color: var(--border-color) !important;
+    }
+
+    [data-theme="dark"] .form-control:focus {
+      background: var(--input-bg) !important;
+      color: var(--text-color) !important;
+      border-color: var(--primary) !important;
+    }
+
+    [data-theme="dark"] .form-control::placeholder {
+      color: var(--text-color) !important;
+      opacity: 0.5;
+    }
+
+    [data-theme="dark"] .display-6 {
+      color: var(--text-color) !important;
+      opacity: 0.6;
+    }
   </style>
   @endpush
 
@@ -31,20 +100,12 @@
       <div class="card-body">
         <form method="GET">
           <div class="row g-3">
-            <div class="col-12 col-md-6 col-lg-5">
+            <div class="col-12 col-md-8 col-lg-9">
               <label for="search" class="form-label">Search</label>
               <input type="text" name="search" id="search" value="{{ request('search') }}"
-                     class="form-control" placeholder="Name, email, phone, company">
+                     class="form-control" placeholder="Name, email, phone">
             </div>
-            <div class="col-12 col-md-4 col-lg-3">
-              <label for="customer_type" class="form-label">Customer Type</label>
-              <select name="customer_type" id="customer_type" class="form-select">
-                <option value="">All Types</option>
-                <option value="individual" @selected(request('customer_type')=='individual')>Individual</option>
-                <option value="business"   @selected(request('customer_type')=='business')>Business</option>
-              </select>
-            </div>
-            <div class="col-12 col-md-2 d-flex align-items-end">
+            <div class="col-12 col-md-4 col-lg-3 d-flex align-items-end">
               <div class="d-flex gap-2 w-100">
                 <button type="submit" class="btn btn-outline-secondary w-100">
                   <i class="bi bi-funnel me-1"></i>Filter
@@ -74,9 +135,6 @@
                   <div class="flex-grow-1">
                     <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-2">
                       <h6 class="mb-0">{{ $customer->name }}</h6>
-                      @if($customer->customer_type === 'business')
-                        <span class="badge badge-business">Business</span>
-                      @endif
                     </div>
                     <div class="text-secondary small">{{ $customer->email }}</div>
 
@@ -85,9 +143,6 @@
                         <div><i class="bi bi-telephone me-1"></i>{{ $customer->phone }}</div>
                       @endif
                       <div><i class="bi bi-files me-1"></i>{{ $customer->bookings_count }} bookings</div>
-                      @if($customer->company_name)
-                        <div><i class="bi bi-building me-1"></i>{{ $customer->company_name }}</div>
-                      @endif
                     </div>
                   </div>
                 </div>

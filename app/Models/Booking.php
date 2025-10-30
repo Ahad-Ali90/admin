@@ -15,6 +15,7 @@ class Booking extends Model
 
     protected $fillable = [
         'customer_id',
+        'company_id',
         'created_by',
         'driver_id',
         'porter_id',
@@ -47,14 +48,13 @@ class Booking extends Model
         'company_commission_amount',
         'extra_hours_rate',
         'extra_hours_amount',
+        'lead_source',
         'is_manual_amount',
         'manual_amount',
         'started_at',
         'completed_at',
         // New enhanced fields
         'source',
-        'contact_no',
-        'email',
         'booking_type',
         'booked_hours',
         'helpers_count',
@@ -114,7 +114,17 @@ class Booking extends Model
         return $this->belongsTo(Customer::class);
     }
 
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
     public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
@@ -133,6 +143,11 @@ class Booking extends Model
     {
         return $this->belongsToMany(User::class, 'booking_porters', 'booking_id', 'porter_id')
                     ->withTimestamps();
+    }
+
+    public function expenses()
+    {
+        return $this->hasMany(BookingExpense::class);
     }
 
     public function vehicle(): BelongsTo
@@ -157,10 +172,6 @@ class Booking extends Model
         return $this->hasOne(CustomerFeedback::class);
     }
 
-    public function expenses(): HasMany
-    {
-        return $this->hasMany(Expense::class);
-    }
 
     // Helper methods
     public function getStatusBadgeAttribute(): string
@@ -335,7 +346,18 @@ class Booking extends Model
 
     public function calculateRemainingAmount(): float
     {
-        return max(0, $this->total_fare - $this->deposit);
+        $totalFare = $this->total_fare;
+        $discount = $this->discount ?? 0;
+        $deposit = $this->deposit ?? 0;
+        $finalAmount = $totalFare - $discount;
+        return max(0, $finalAmount - $deposit);
+    }
+
+    public function getFinalTotalFare(): float
+    {
+        $totalFare = $this->total_fare ?? 0;
+        $discount = $this->discount ?? 0;
+        return max(0, $totalFare - $discount);
     }
 
     public function calculateTotalEarning(): float
@@ -380,6 +402,42 @@ class Booking extends Model
 
     public function getNetProfit(): float
     {
-        return $this->calculateTotalEarning() - $this->getTotalExpenses();
+        $finalTotalFare = $this->getFinalTotalFare();
+        $extraHoursAmount = $this->extra_hours_amount ?? 0;
+        $totalRevenue = $finalTotalFare + $extraHoursAmount;
+        $totalExpenses = $this->getTotalExpenses();
+        $companyCommission = $this->is_company_booking ? ($this->company_commission_amount ?? 0) : 0;
+        
+        return max(0, $totalRevenue - $totalExpenses - $companyCommission);
+    }
+
+    public function getExpensesByType(string $type): float
+    {
+        return $this->expenses()->where('expense_type', $type)->sum('amount');
+    }
+
+    public function getDriverPayments(): float
+    {
+        return $this->getExpensesByType('driver_payment');
+    }
+
+    public function getPorterPayments(): float
+    {
+        return $this->getExpensesByType('porter_payment');
+    }
+
+    public function getCongestionCharges(): float
+    {
+        return $this->getExpensesByType('congestion_charge');
+    }
+
+    public function getUlezCharges(): float
+    {
+        return $this->getExpensesByType('ulez_charge');
+    }
+
+    public function getTollCharges(): float
+    {
+        return $this->getExpensesByType('toll_charge');
     }
 }

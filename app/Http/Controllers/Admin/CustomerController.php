@@ -21,14 +21,8 @@ class CustomerController extends Controller
             $query->where(function($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%")
-                  ->orWhere('company_name', 'like', "%{$search}%");
+                  ->orWhere('phone', 'like', "%{$search}%");
             });
-        }
-
-        // Filter by customer type
-        if ($request->filled('customer_type')) {
-            $query->where('customer_type', $request->customer_type);
         }
 
         $customers = $query->withCount('bookings')->latest()->paginate(15);
@@ -55,8 +49,6 @@ class CustomerController extends Controller
             'phone' => 'required|string|max:20',
             'address' => 'required|string|max:1000',
             'postcode' => 'nullable|string|max:10',
-            'customer_type' => 'required|in:individual,business',
-            'company_name' => 'nullable|required_if:customer_type,business|string|max:255',
             'customer_source' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:2000',
         ]);
@@ -105,8 +97,6 @@ class CustomerController extends Controller
             'phone' => 'required|string|max:20',
             'address' => 'required|string|max:1000',
             'postcode' => 'nullable|string|max:10',
-            'customer_type' => 'required|in:individual,business',
-            'company_name' => 'nullable|required_if:customer_type,business|string|max:255',
             'customer_source' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:2000',
         ]);

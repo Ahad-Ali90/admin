@@ -121,4 +121,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(CustomerFeedback::class, 'reviewed_by');
     }
+
+    public function assignedTasks()
+    {
+        return $this->hasMany(Task::class, 'responsible_person_id');
+    }
+
+    public function createdTasks()
+    {
+        return $this->hasMany(Task::class, 'created_by');
+    }
 }
