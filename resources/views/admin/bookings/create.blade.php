@@ -531,19 +531,37 @@
 
     function toFixed2(v){ return Number(v || 0).toFixed(2); }
 
-    // Booking type toggle
-    bookingType?.addEventListener('change', function(){
-      if (this.value === 'fixed') {
-        fixedPriceFields.style.display = 'block';
-        hourlyRateFields.style.display = 'none';
-      } else if (this.value === 'hourly') {
-        fixedPriceFields.style.display = 'none';
-        hourlyRateFields.style.display = 'block';
+    // Booking type toggle function
+    function toggleBookingTypeFields() {
+      const selectedValue = bookingType?.value;
+      if (selectedValue === 'fixed') {
+        if (fixedPriceFields) fixedPriceFields.style.display = 'block';
+        if (hourlyRateFields) hourlyRateFields.style.display = 'none';
+      } else if (selectedValue === 'hourly') {
+        if (fixedPriceFields) fixedPriceFields.style.display = 'none';
+        if (hourlyRateFields) hourlyRateFields.style.display = 'block';
       } else {
-        fixedPriceFields.style.display = 'none';
-        hourlyRateFields.style.display = 'none';
+        if (fixedPriceFields) fixedPriceFields.style.display = 'none';
+        if (hourlyRateFields) hourlyRateFields.style.display = 'none';
       }
-    });
+    }
+
+    // Booking type toggle - handle both native and Select2 events
+    if (bookingType) {
+      // Native change event (always works)
+      bookingType.addEventListener('change', toggleBookingTypeFields);
+      
+      // Select2 change event (if Select2 is initialized)
+      // Wait a bit for Select2 to initialize
+      setTimeout(function() {
+        if (typeof $ !== 'undefined' && $.fn.select2 && $(bookingType).hasClass('select2-hidden-accessible')) {
+          // Select2 is initialized, use jQuery event
+          $(bookingType).on('change', function() {
+            toggleBookingTypeFields();
+          });
+        }
+      }, 300);
+    }
 
     // Hourly rate calculation
     const hourlyRate = document.getElementById('hourly_rate');
@@ -616,6 +634,25 @@
 
       container.appendChild(node);
       serviceIndex++;
+      
+      // Initialize Select2 on the newly added select
+      if (typeof $ !== 'undefined' && $.fn.select2) {
+        $(sel).select2({
+          theme: 'bootstrap-5',
+          width: '100%',
+          language: {
+            noResults: function() {
+              return "No results found";
+            },
+            searching: function() {
+              return "Searching...";
+            }
+          },
+          placeholder: function() {
+            return $(sel).find('option:first').text() || 'Select an option';
+          }
+        });
+      }
     });
 
     // Initialize
@@ -629,14 +666,8 @@
       companyCommissionSection.style.display = 'block';
     }
     
-    // Initialize booking type fields
-    if (bookingType?.value === 'fixed') {
-      fixedPriceFields.style.display = 'block';
-      hourlyRateFields.style.display = 'none';
-    } else if (bookingType?.value === 'hourly') {
-      fixedPriceFields.style.display = 'none';
-      hourlyRateFields.style.display = 'block';
-    }
+    // Initialize booking type fields on page load
+    toggleBookingTypeFields();
 
   })();
 

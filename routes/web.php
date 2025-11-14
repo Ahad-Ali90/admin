@@ -17,12 +17,12 @@ use App\Http\Controllers\Admin\LeadSourceController;
 use App\Http\Controllers\ServiceTypeController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return redirect()->route('admin.dashboard');
-});
+    Route::get('/', function () {
+        return redirect()->route('admin.dashboard');
+    });
 
-// Admin Routes
-Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified'])->group(function () {
+    // Admin Routes
+    Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified'])->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     
@@ -87,6 +87,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified'])->group(
     Route::get('/lead-sources/manage', [LeadSourceController::class, 'manage'])->name('lead-sources.manage');
     Route::get('/lead-sources', [LeadSourceController::class, 'index'])->name('lead-sources.index');
     Route::post('/lead-sources', [LeadSourceController::class, 'store'])->name('lead-sources.store');
+    Route::get('/lead-sources/{id}/details', [LeadSourceController::class, 'details'])->name('lead-sources.details');
     Route::get('/lead-sources/{id}', [LeadSourceController::class, 'show'])->name('lead-sources.show');
     Route::put('/lead-sources/{id}', [LeadSourceController::class, 'update'])->name('lead-sources.update');
     Route::delete('/lead-sources/{id}', [LeadSourceController::class, 'destroy'])->name('lead-sources.destroy');

@@ -153,9 +153,7 @@
       color: var(--text-color) !important;
     }
 
-    [data-theme="dark"] .badge {
-      color: white !important;
-    }
+    
 
     [data-theme="dark"] .badge.bg-light {
       background: var(--hover-bg) !important;
@@ -167,12 +165,10 @@
     }
 
     [data-theme="dark"] a {
-      color: #818cf8 !important;
+      color: white !important;
     }
 
-    [data-theme="dark"] a:hover {
-      color: #a5b4fc !important;
-    }
+    
 
     [data-theme="dark"] small {
       color: var(--text-color) !important;
@@ -248,7 +244,7 @@
               </div>
             </div>
 
-            <div class="mb-3">
+            <div class="mb-3 d-none">
               <label for="sort_order" class="form-label">Sort Order</label>
               <input type="number" class="form-control" id="sort_order" min="0" value="0">
               <small class="text-muted">Lower numbers appear first</small>
@@ -324,16 +320,24 @@
 
       grid.innerHTML = sources.map(source => `
         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-          <div class="source-card ${source.is_active ? '' : 'inactive'}" onclick="openEditModal(${source.id})">
-            <div class="source-icon" style="background: ${source.color}20; color: ${source.color};">
-              <i class="bi ${source.icon || 'bi-megaphone'}"></i>
+          <div class="source-card ${source.is_active ? '' : 'inactive'}" onclick="viewSourceDetails(${source.id})">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div class="source-icon" style="background: ${source.color}20; color: ${source.color};">
+                <i class="bi ${source.icon || 'bi-megaphone'}"></i>
+              </div>
+              <div class="d-flex gap-1" onclick="event.stopPropagation()">
+                <button class="btn btn-outline-danger p-1" style="border:none !important" onclick="openEditModal(${source.id}, event)" title="Edit">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                
+              </div>
             </div>
             <h6 class="mb-2 fw-bold">${source.name}</h6>
-            <div class="d-flex gap-2 align-items-center">
+            <div class="d-flex gap-2 align-items-center flex-wrap">
               <span class="badge ${source.is_active ? 'bg-success' : 'bg-secondary'}">
                 ${source.is_active ? 'Active' : 'Inactive'}
               </span>
-              <span class="badge bg-light text-dark">Order: ${source.sort_order}</span>
+              <span class="badge bg-info text-white">Jobs: ${source.bookings_count || 0}</span>
             </div>
           </div>
         </div>
@@ -351,7 +355,14 @@
       modal.show();
     }
 
-    function openEditModal(id) {
+    function viewSourceDetails(id) {
+      window.location.href = `{{ url('admin/lead-sources') }}/${id}/details`;
+    }
+
+    function openEditModal(id, event) {
+      if (event) {
+        event.stopPropagation();
+      }
       const source = sources.find(s => s.id === id);
       if (!source) return;
 

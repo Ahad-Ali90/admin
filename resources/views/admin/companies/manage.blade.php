@@ -1,4 +1,63 @@
 <x-admin.layouts.app>
+  @push('styles')
+  <style>
+    /* Fix table row hover and active states - override Bootstrap table-hover */
+    #companiesTable.table-hover > tbody > tr:hover {
+      background-color: #f8f9fa !important;
+      --bs-table-hover-bg: #f8f9fa !important;
+    }
+    #companiesTable.table-hover > tbody > tr:hover > td {
+      background-color: transparent !important;
+      color: #212529 !important;
+    }
+    #companiesTable tbody tr {
+      cursor: pointer;
+      background-color: transparent !important;
+    }
+    #companiesTable tbody tr:active,
+    #companiesTable tbody tr.active {
+      background-color: #e9ecef !important;
+    }
+    #companiesTable tbody tr:active td,
+    #companiesTable tbody tr.active td {
+      background-color: transparent !important;
+      color: #212529 !important;
+    }
+    /* Dark mode support */
+    [data-theme="dark"] #companiesTable.table-hover > tbody > tr:hover {
+      background-color: #374151 !important;
+      --bs-table-hover-bg: #374151 !important;
+    }
+    [data-theme="dark"] #companiesTable.table-hover > tbody > tr:hover > td {
+      background-color: transparent !important;
+      color: #f9fafb !important;
+    }
+    [data-theme="dark"] #companiesTable tbody tr:active,
+    [data-theme="dark"] #companiesTable tbody tr.active {
+      background-color: #4b5563 !important;
+    }
+    [data-theme="dark"] #companiesTable tbody tr:active td,
+    [data-theme="dark"] #companiesTable tbody tr.active td {
+      background-color: transparent !important;
+      color: #f9fafb !important;
+    }
+    /* Fix button container */
+    .action-buttons {
+      display: flex;
+      gap: 0.25rem;
+      align-items: center;
+    }
+    .action-buttons .btn {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+  </style>
+  @endpush
   <div class="container-xxl py-3">
     {{-- Header --}}
     <div class="d-flex flex-column gap-2 flex-md-row align-items-md-center justify-content-md-between mb-4">
@@ -21,6 +80,7 @@
             <thead>
               <tr>
                 <th>Name</th>
+                <th>Type</th>
                 <th>Email</th>
                 <th>Phone</th>
                 <th>Address</th>
@@ -29,7 +89,7 @@
             </thead>
             <tbody id="companiesTableBody">
               <tr>
-                <td colspan="5" class="text-center">
+                <td colspan="6" class="text-center">
                   <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
                   </div>
@@ -57,6 +117,16 @@
             <div class="mb-3">
               <label for="companyName" class="form-label">Company Name <span class="text-danger">*</span></label>
               <input type="text" class="form-control" id="companyName" required>
+              <div class="invalid-feedback"></div>
+            </div>
+
+            <div class="mb-3">
+              <label for="companyType" class="form-label">Type <span class="text-danger">*</span></label>
+              <select class="form-select" id="companyType" required>
+                <option value="">Select Type</option>
+                <option value="subcontractor">Subcontractor</option>
+                <option value="commercial_client">Commercial Client</option>
+              </select>
               <div class="invalid-feedback"></div>
             </div>
 
@@ -121,7 +191,7 @@
       if (companies.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="5" class="text-center text-muted py-4">
+            <td colspan="6" class="text-center text-muted py-4">
               <i class="bi bi-building fs-1 d-block mb-2"></i>
               No companies found. Click "Add Company" to create one.
             </td>
@@ -130,25 +200,34 @@
         return;
       }
 
-      tbody.innerHTML = companies.map(company => `
+      tbody.innerHTML = companies.map(company => {
+        const typeLabel = company.type === 'subcontractor' ? 'Subcontractor' : 'Commercial Client';
+        const typeBadge = company.type === 'subcontractor' 
+          ? '<span class="badge bg-info">Subcontractor</span>' 
+          : '<span class="badge bg-primary">Commercial Client</span>';
+        return `
         <tr>
           <td class="fw-medium">${company.name}</td>
+          <td>${typeBadge}</td>
           <td>${company.email || '<span class="text-muted">-</span>'}</td>
           <td>${company.phone || '<span class="text-muted">-</span>'}</td>
           <td>${company.address || '<span class="text-muted">-</span>'}</td>
           <td>
-            <a href="{{ url('admin/companies') }}/${company.id}/details" class="btn btn-sm btn-outline-info">
-              <i class="bi bi-eye"></i>
-            </a>
-            <button class="btn btn-sm btn-outline-primary" onclick="editCompany(${company.id})">
-              <i class="bi bi-pencil"></i>
-            </button>
-            <button class="btn btn-sm btn-outline-danger" onclick="deleteCompany(${company.id}, '${company.name}')">
-              <i class="bi bi-trash"></i>
-            </button>
+            <div class="action-buttons">
+              <a href="{{ url('admin/companies') }}/${company.id}/details" class="btn btn-sm btn-outline-info" title="View Details">
+                <i class="bi bi-eye"></i>
+              </a>
+              <button class="btn btn-sm btn-outline-primary" onclick="editCompany(${company.id})" title="Edit">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteCompany(${company.id}, '${company.name}')" title="Delete">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
           </td>
         </tr>
-      `).join('');
+      `;
+      }).join('');
     }
 
     // Open modal for new company
@@ -168,6 +247,7 @@
           document.getElementById('companyModalTitle').textContent = 'Edit Company';
           document.getElementById('companyId').value = company.id;
           document.getElementById('companyName').value = company.name;
+          document.getElementById('companyType').value = company.type || 'commercial_client';
           document.getElementById('companyEmail').value = company.email || '';
           document.getElementById('companyPhone').value = company.phone || '';
           document.getElementById('companyAddress').value = company.address || '';
@@ -187,6 +267,7 @@
       const id = document.getElementById('companyId').value;
       const data = {
         name: document.getElementById('companyName').value,
+        type: document.getElementById('companyType').value,
         email: document.getElementById('companyEmail').value,
         phone: document.getElementById('companyPhone').value,
         address: document.getElementById('companyAddress').value,
