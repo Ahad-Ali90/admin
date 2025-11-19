@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'webex' => [
+        'api_key' => env('WEBEX_API_KEY'),
+        'sender_name' => env('WEBEX_SENDER_NAME'),
+        'admin_number' => env('WEBEX_ADMIN_NUMBER'),
+    ],
+
 ];

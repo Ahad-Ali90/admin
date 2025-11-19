@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\ServiceType;
+use App\Services\WebexSmsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -118,7 +119,7 @@ class BookingController extends Controller
             'extra_hours' => 'nullable|integer|min:0',
             'extra_hours_rate' => 'nullable|numeric|min:0',
             'services' => 'nullable|array',
-            'services.*.service_id' => 'required_with:services|exists:service_types,id',
+            'services.*.service_id' => 'nullable|exists:service_types,id',
             'services.*.qty' => 'nullable|integer|min:1',
             // New enhanced fields validation
             'source' => 'nullable|string|max:255',
@@ -135,10 +136,36 @@ class BookingController extends Controller
             'notes' => 'nullable|string|max:2000',
             'status' => 'nullable|in:pending,confirmed,in_progress,completed,cancelled,not_converted',
             'lead_source' => 'nullable|in:website,phone,email,whatsapp,facebook,instagram,referral,walk_in,other',
+            // Survey validation
+            'survey_type' => 'nullable|in:video_call,video_recording,list',
+            'schedule_date' => 'nullable|date',
+            'schedule_time' => 'nullable|date_format:H:i,H:i:s',
+            'survey_status' => 'nullable|in:done,pending,not_agreed',
+            'survey_list_content' => 'nullable|string|max:5000',
+            'survey_video' => 'nullable|file|mimes:mp4,avi,mov,wmv|max:102400', // 100MB max
+            'survey_notes' => 'nullable|string|max:2000',
         ]);
 
-        // Generate booking reference
-        $bookingReference = 'TBR-' . strtoupper(Str::random(8));
+        // Generate sequential booking reference starting from TBR-001000
+        // Get all bookings with TBR- prefix and extract numeric references
+        $allBookings = Booking::where('booking_reference', 'like', 'TBR-%')
+            ->pluck('booking_reference')
+            ->toArray();
+        
+        $maxNumber = 999; // Start from 1000, so max should be 999 to get 1000
+        
+        foreach ($allBookings as $ref) {
+            if (preg_match('/TBR-(\d+)/', $ref, $matches)) {
+                $number = (int) $matches[1];
+                if ($number > $maxNumber) {
+                    $maxNumber = $number;
+                }
+            }
+        }
+        
+        // Next number will be maxNumber + 1, starting from 1000
+        $nextNumber = $maxNumber + 1;
+        $bookingReference = 'TBR-' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
 
         // Calculate total fare based on booking type
         $totalFare = 0;
@@ -200,6 +227,19 @@ class BookingController extends Controller
             $booking->porters()->sync($request->porter_ids);
         }
 
+        // Attach services if provided
+        if ($request->filled('services')) {
+            foreach ($request->services as $serviceData) {
+                if (isset($serviceData['service_id'])) {
+                    $booking->services()->attach($serviceData['service_id'], [
+                        'quantity' => 1,
+                        'unit_rate' => 0,
+                        'total_amount' => 0,
+                    ]);
+                }
+            }
+        }
+
         // Calculate company commission if applicable
         if ($booking->is_company_booking && $booking->company_commission_rate) {
             $booking->company_commission_amount = $booking->calculateCompanyCommission();
@@ -218,6 +258,40 @@ class BookingController extends Controller
         // Update vehicle status if assigned
         if ($request->vehicle_id) {
             Vehicle::find($request->vehicle_id)->update(['status' => 'in_use']);
+        }
+
+        // Handle Video Survey if enabled
+        if ($request->filled('survey_type')) {
+            $surveyData = [
+                'booking_id' => $booking->id,
+                'survey_type' => $request->survey_type,
+                'schedule_date' => $request->schedule_date,
+                'schedule_time' => $request->schedule_time,
+                'status' => $request->survey_status,
+                'list_content' => $request->survey_list_content,
+                'notes' => $request->survey_notes,
+            ];
+
+            // Handle video file upload for video recording type
+            if ($request->survey_type === 'video_recording' && $request->hasFile('survey_video')) {
+                $videoPath = $request->file('survey_video')->store('surveys/videos', 'public');
+                $surveyData['video_path'] = $videoPath;
+            }
+
+            $booking->survey()->create($surveyData);
+        }
+
+        // Send SMS notification if booking is confirmed
+        if ($booking->status === 'confirmed') {
+            try {
+                $smsService = new WebexSmsService();
+                $smsService->sendBookingConfirmation($booking);
+            } catch (\Exception $e) {
+                \Log::error('Failed to send booking confirmation SMS', [
+                    'booking_id' => $booking->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
         }
 
         return redirect()->route('admin.bookings.show', $booking)
@@ -258,10 +332,10 @@ class BookingController extends Controller
         $notes = $request->notes;
 
         // Check if transition is valid
-        if (!$booking->canTransitionTo($newStatus)) {
-            return redirect()->back()
-                ->with('error', "Cannot transition from {$booking->status} to {$newStatus}");
-        }
+        // if (!$booking->canTransitionTo($newStatus)) {
+        //     return redirect()->back()
+        //         ->with('error', "Cannot transition from {$booking->status} to {$newStatus}");
+        // }
 
         // Check requirements for specific statuses
         $requirements = $booking->getStatusRequirements($newStatus);
@@ -298,6 +372,19 @@ class BookingController extends Controller
         }
 
         $booking->save();
+
+        // Send SMS notification if booking status changed to confirmed
+        if ($newStatus === 'confirmed' && $oldStatus !== 'confirmed') {
+            try {
+                $smsService = new WebexSmsService();
+                $smsService->sendBookingConfirmation($booking);
+            } catch (\Exception $e) {
+                \Log::error('Failed to send booking confirmation SMS', [
+                    'booking_id' => $booking->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
 
         // Log status change (optional - you can create a status_logs table)
         // StatusLog::create([
@@ -364,7 +451,7 @@ class BookingController extends Controller
      */
     public function show(Booking $booking)
     {
-        $booking->load(['customer', 'driver', 'porter', 'porters', 'vehicle', 'services', 'invoice']);
+        $booking->load(['customer', 'driver', 'porter', 'porters', 'vehicle', 'services', 'invoice', 'survey']);
 
         return view('admin.bookings.show', compact('booking'));
     }
@@ -402,6 +489,13 @@ class BookingController extends Controller
      */
     public function update(Request $request, Booking $booking)
     {
+        // Log that we've reached the update method
+        \Log::info('BookingController@update called', [
+            'booking_id' => $booking->id,
+            'booking_reference' => $booking->booking_reference,
+            'request_all' => $request->all(),
+        ]);
+        
         // For not_converted status, no date restrictions
         $bookingDateRule = $request->status === 'not_converted' 
             ? 'required|date' 
@@ -424,13 +518,14 @@ class BookingController extends Controller
             'vehicle_id' => 'nullable|exists:vehicles,id',
             'porter_ids' => 'nullable|array',
             'porter_ids.*' => 'nullable|exists:users,id',
+            'manual_amount' => 'nullable|numeric|min:0',
             'is_company_booking' => 'nullable|boolean',
             'company_id' => 'nullable|exists:companies,id',
             'company_commission_amount' => 'nullable|numeric|min:0',
             'extra_hours' => 'nullable|integer|min:0',
             'extra_hours_rate' => 'nullable|numeric|min:0',
             'services' => 'nullable|array',
-            'services.*.service_id' => 'required_with:services|exists:service_types,id',
+            'services.*.service_id' => 'nullable|exists:service_types,id',
             // New enhanced fields validation
             'source' => 'nullable|string|max:255',
             'booking_type' => 'required|in:fixed,hourly',
@@ -444,9 +539,18 @@ class BookingController extends Controller
             'discount' => 'nullable|numeric|min:0',
             'discount_reason' => 'nullable|string|max:500',
             'notes' => 'nullable|string|max:2000',
+            // Survey validation
+            'survey_type' => 'nullable|in:video_call,video_recording,list',
+            'schedule_date' => 'nullable|date',
+            'schedule_time' => 'nullable|date_format:H:i,H:i:s',
+            'survey_status' => 'nullable|in:done,pending,not_agreed',
+            'survey_list_content' => 'nullable|string|max:5000',
+            'survey_video' => 'nullable|file|mimes:mp4,avi,mov,wmv|max:102400', // 100MB max
+            'survey_notes' => 'nullable|string|max:2000',
         ]);
 
-        // Store old vehicle ID to update its status
+        // Store old status and vehicle ID to update its status
+        $oldStatus = $booking->status;
         $oldVehicleId = $booking->vehicle_id;
 
         // Calculate total fare based on booking type
@@ -474,6 +578,8 @@ class BookingController extends Controller
             'delivery_postcode' => $request->delivery_postcode,
             'job_description' => $request->job_description,
             'special_instructions' => $request->special_instructions,
+            'total_amount' => $request->manual_amount ?? $booking->total_amount,
+            'manual_amount' => $request->manual_amount ?? $booking->manual_amount,
             'is_company_booking' => $request->boolean('is_company_booking'),
             'company_id' => $request->company_id,
             'company_commission_amount' => $request->company_commission_amount,
@@ -505,15 +611,28 @@ class BookingController extends Controller
 
         // Update services
         $booking->services()->detach();
-        if ($request->services) {
+        
+        // Log services data for debugging
+        \Log::info('Services data received:', [
+            'services' => $request->services,
+            'has_services' => $request->has('services'),
+            'filled_services' => $request->filled('services'),
+        ]);
+        
+        if ($request->filled('services') && is_array($request->services)) {
             foreach ($request->services as $serviceData) {
-                $service = ServiceType::find($serviceData['service_id']);
-
-                $booking->services()->attach($service->id, [
-                    'quantity' => 1, // Default quantity
-                    'unit_rate' => 0, // No pricing in service types anymore
-                    'total_amount' => 0, // No pricing in service types anymore
-                ]);
+                if (isset($serviceData['service_id']) && !empty($serviceData['service_id'])) {
+                    $service = ServiceType::find($serviceData['service_id']);
+                    
+                    if ($service) {
+                        $booking->services()->attach($service->id, [
+                            'quantity' => 1,
+                            'unit_rate' => 0,
+                            'total_amount' => 0,
+                        ]);
+                        \Log::info('Service attached:', ['service_id' => $service->id, 'service_name' => $service->name]);
+                    }
+                }
             }
         }
 
@@ -532,12 +651,54 @@ class BookingController extends Controller
         $booking->total_earning_inc_deposit = $booking->calculateTotalEarning();
         $booking->save();
 
+        // Handle Video Survey
+        if ($request->filled('survey_type')) {
+            $surveyData = [
+                'survey_type' => $request->survey_type,
+                'schedule_date' => $request->schedule_date,
+                'schedule_time' => $request->schedule_time,
+                'status' => $request->survey_status,
+                'list_content' => $request->survey_list_content,
+                'notes' => $request->survey_notes,
+            ];
+
+            // Handle video file upload for video recording type
+            if ($request->survey_type === 'video_recording' && $request->hasFile('survey_video')) {
+                $videoPath = $request->file('survey_video')->store('surveys/videos', 'public');
+                $surveyData['video_path'] = $videoPath;
+            }
+
+            // Update or create survey
+            $booking->survey()->updateOrCreate(
+                ['booking_id' => $booking->id],
+                $surveyData
+            );
+        } else {
+            // Delete survey if no survey type selected
+            $booking->survey()->delete();
+        }
+
         // Update vehicle statuses
         if ($oldVehicleId && $oldVehicleId != $request->vehicle_id) {
             Vehicle::find($oldVehicleId)->update(['status' => 'available']);
         }
         if ($request->vehicle_id) {
             Vehicle::find($request->vehicle_id)->update(['status' => 'in_use']);
+        }
+
+        // Send SMS notification if booking status changed to confirmed
+        // Reload booking to get the latest status
+        $booking->refresh();
+        if ($booking->status === 'confirmed' && $oldStatus !== 'confirmed') {
+            try {
+                $smsService = new WebexSmsService();
+                $smsService->sendBookingConfirmation($booking);
+            } catch (\Exception $e) {
+                \Log::error('Failed to send booking confirmation SMS', [
+                    'booking_id' => $booking->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
         }
 
         return redirect()->route('admin.bookings.show', $booking)

@@ -8,6 +8,114 @@
     .badge-maintenance{background:#fff7ed;color:#9a3412}
     .badge-retired{background:#fef2f2;color:#991b1b}
     .table thead th{white-space:nowrap}
+    
+    /* Vehicle Modal Responsive Styles */
+    #vehicleModal .modal-dialog {
+      margin: 1.75rem auto;
+      display: flex;
+      align-items: center;
+      min-height: calc(100% - 3.5rem);
+    }
+    
+    #vehicleModal .modal-content {
+      width: 100%;
+    }
+    
+    #vehicleModal .modal-body {
+      max-height: calc(100vh - 200px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Custom Scrollbar for Modal Body */
+    #vehicleModal .modal-body::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    #vehicleModal .modal-body::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+    
+    #vehicleModal .modal-body::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    
+    #vehicleModal .modal-body::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    
+    /* Mobile Responsive */
+    @media (max-width: 575.98px) {
+      #vehicleModal .modal-dialog {
+        margin: 0;
+        max-width: 100%;
+        min-height: 100%;
+        align-items: flex-end;
+      }
+      
+      #vehicleModal .modal-body {
+        max-height: calc(100vh - 150px);
+        padding: 1rem !important;
+      }
+      
+      #vehicleModal .row.g-3 {
+        margin-left: -0.5rem;
+        margin-right: -0.5rem;
+      }
+      
+      #vehicleModal .row.g-3 > * {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+      }
+      
+      #vehicleModal .modal-header,
+      #vehicleModal .modal-footer {
+        padding: 0.75rem 1rem;
+      }
+      
+      #vehicleModal .form-label {
+        font-size: 0.875rem;
+        margin-bottom: 0.375rem;
+      }
+      
+      #vehicleModal .form-control,
+      #vehicleModal .form-select {
+        font-size: 0.9375rem;
+        padding: 0.5rem 0.75rem;
+      }
+    }
+    
+    /* Tablet Responsive */
+    @media (min-width: 576px) and (max-width: 991.98px) {
+      #vehicleModal .modal-dialog {
+        max-width: 90%;
+        margin: 1.75rem auto;
+        display: flex;
+        align-items: center;
+        min-height: calc(100% - 3.5rem);
+      }
+      
+      #vehicleModal .modal-body {
+        max-height: calc(100vh - 180px);
+      }
+    }
+    
+    /* Desktop */
+    @media (min-width: 992px) {
+      #vehicleModal .modal-dialog {
+        max-width: 800px;
+        margin: 1.75rem auto;
+        display: flex;
+        align-items: center;
+        min-height: calc(100% - 3.5rem);
+      }
+      
+      #vehicleModal .modal-body {
+        max-height: calc(100vh - 220px);
+      }
+    }
   </style>
   @endpush
 
@@ -91,14 +199,14 @@
 
   <!-- Create/Edit Modal -->
   <div class="modal fade" id="vehicleModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg modal-fullscreen-sm-down">
       <div class="modal-content">
         <form id="vehicleForm">
           <div class="modal-header">
             <h5 class="modal-title" id="modalTitle">Add Vehicle</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
-          <div class="modal-body">
+          <div class="modal-body" style="max-height: calc(100vh - 200px); overflow-y: auto; padding: 1.5rem;">
             <div id="formAlert" class="alert alert-danger d-none"></div>
 
             <div class="row g-3">
@@ -233,6 +341,27 @@
       return map[s] || 'badge-soft';
     }
     function esc(s){ return (s??'').toString().replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+    function formatDate(dateStr){
+      if (!dateStr) return '';
+      
+      // Handle date strings in format YYYY-MM-DD to avoid timezone issues
+      let date;
+      if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+        const parts = dateStr.split('T')[0].split('-');
+        date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      } else {
+        date = new Date(dateStr);
+      }
+      
+      if (isNaN(date.getTime())) return dateStr;
+      
+      const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                     'July', 'August', 'September', 'October', 'November', 'December'];
+      const day = date.getDate();
+      const month = months[date.getMonth()];
+      const year = date.getFullYear();
+      return `${day} ${month} ${year}`;
+    }
     function rowHtml(v){
       return `
       <tr data-id="${v.id}">
@@ -241,8 +370,8 @@
         <td>${esc(v.year)}</td>
         <td class="text-capitalize">${esc(v.vehicle_type)}</td>
         <td><span class="badge ${badgeStatus(v.status)} text-capitalize">${esc(v.status.replace('_',' '))}</span></td>
-        <td>${esc(v.mot_expiry_date ?? '')}</td>
-        <td>${esc(v.insurance_expiry_date ?? '')}</td>
+        <td>${esc(formatDate(v.mot_expiry_date))}</td>
+        <td>${esc(formatDate(v.insurance_expiry_date))}</td>
         <td>${esc(v.mileage)}</td>
         <td class="text-end">
           <div class="btn-group">

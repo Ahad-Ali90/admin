@@ -172,6 +172,11 @@ class Booking extends Model
         return $this->hasOne(CustomerFeedback::class);
     }
 
+    public function survey(): HasOne
+    {
+        return $this->hasOne(BookingSurvey::class);
+    }
+
 
     // Helper methods
     public function getStatusBadgeAttribute(): string
@@ -228,11 +233,11 @@ class Booking extends Model
     public function getAvailableStatusTransitions(): array
     {
         $transitions = [
-            'pending' => ['confirmed', 'cancelled'],
-            'confirmed' => ['in_progress', 'cancelled'],
-            'in_progress' => ['completed', 'cancelled'],
-            'completed' => [],
-            'cancelled' => ['pending'],
+            'pending' => ['confirmed', 'cancelled','in_progress','completed'],
+            'confirmed' => ['in_progress', 'cancelled','confirmed','completed','pending'],
+            'in_progress' => ['completed', 'cancelled','confirmed','pending'],
+            'completed' => ['confirmed','in_progress','pending','cancelled'],
+            'cancelled' => ['pending','confirmed','in_progress','completed'],
         ];
 
         return $transitions[$this->status] ?? [];

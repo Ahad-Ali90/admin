@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PublicBookingController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\BookingController;
 use App\Http\Controllers\Admin\BookingExpenseController;
@@ -14,12 +15,23 @@ use App\Http\Controllers\Admin\TaskController;
 use App\Http\Controllers\Admin\LeadTrackerController;
 use App\Http\Controllers\Admin\ProfitLossController;
 use App\Http\Controllers\Admin\LeadSourceController;
+use App\Http\Controllers\Admin\TermsAndConditionController;
+use App\Http\Controllers\Admin\ReviewController;
+use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\ServiceTypeController;
 use Illuminate\Support\Facades\Route;
 
     Route::get('/', function () {
         return redirect()->route('admin.dashboard');
     });
+
+    // Public Booking Routes (no authentication required)
+    Route::prefix('track')->name('public.booking.')->group(function () {
+        Route::get('/', [PublicBookingController::class, 'lookup'])->name('lookup');
+        Route::post('/search', [PublicBookingController::class, 'search'])->name('search');
+        Route::get('/{reference}', [PublicBookingController::class, 'show'])->name('show');
+    });
+    Route::post('/tinymce/upload', [DashboardController::class, 'tinymce'])->name('tinymce.upload');
 
     // Admin Routes
     Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified'])->group(function () {
@@ -56,6 +68,7 @@ use Illuminate\Support\Facades\Route;
     Route::post('/bookings/{booking}/start', [BookingController::class, 'start'])->name('bookings.start');
     Route::post('/bookings/{booking}/complete', [BookingController::class, 'complete'])->name('bookings.complete');
     
+
     // Booking Expenses
     Route::get('/bookings/{booking}/expenses', [BookingExpenseController::class, 'index'])->name('bookings.expenses');
     Route::post('/bookings/{booking}/expenses', [BookingExpenseController::class, 'store'])->name('bookings.expenses.store');
@@ -91,6 +104,20 @@ use Illuminate\Support\Facades\Route;
     Route::get('/lead-sources/{id}', [LeadSourceController::class, 'show'])->name('lead-sources.show');
     Route::put('/lead-sources/{id}', [LeadSourceController::class, 'update'])->name('lead-sources.update');
     Route::delete('/lead-sources/{id}', [LeadSourceController::class, 'destroy'])->name('lead-sources.destroy');
+    
+    // Terms and Conditions
+    Route::get('/terms/manage', [TermsAndConditionController::class, 'manage'])->name('terms.manage');
+    Route::resource('terms', TermsAndConditionController::class);
+    
+    // Reviews
+    Route::get('/reviews/manage', [ReviewController::class, 'manage'])->name('reviews.manage');
+    Route::get('/reviews/bookings', [ReviewController::class, 'getBookings'])->name('reviews.bookings');
+    Route::resource('reviews', ReviewController::class);
+    
+    // Invoices
+    Route::get('/bookings/{booking}/invoice/create', [InvoiceController::class, 'create'])->name('invoices.create');
+    Route::post('/bookings/{booking}/invoice/store', [InvoiceController::class, 'store'])->name('invoices.store');
+    Route::get('/bookings/{booking}/invoice', [InvoiceController::class, 'show'])->name('invoices.show');
 
     // Single-page UI
     Route::get('/vehicles/manage', [VehicleController::class, 'manage'])->name('vehicles.manage');

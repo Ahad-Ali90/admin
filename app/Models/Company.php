@@ -13,6 +13,7 @@ class Company extends Model
         'email',
         'phone',
         'address',
+        'attendant',
     ];
 
     public function bookings(): HasMany

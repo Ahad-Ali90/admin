@@ -13,7 +13,19 @@
       </p>
     </div>
 
-    <form id="bookingForm" method="POST" action="{{ isset($booking) ? route('admin.bookings.update', $booking) : route('admin.bookings.store') }}" class="vstack gap-4">
+    {{-- Display All Validation Errors --}}
+    @if ($errors->any())
+      <div class="alert alert-danger">
+        <h5 class="alert-heading"><i class="bi bi-exclamation-triangle-fill me-2"></i>Please fix the following errors:</h5>
+        <ul class="mb-0">
+          @foreach ($errors->all() as $error)
+            <li>{{ $error }}</li>
+          @endforeach
+        </ul>
+      </div>
+    @endif
+
+    <form id="bookingForm" method="POST" action="{{ isset($booking) ? route('admin.bookings.update', $booking) : route('admin.bookings.store') }}" class="vstack gap-4" onsubmit="debugFormSubmit(event)" enctype="multipart/form-data">
       @csrf
       @if(isset($booking))
         @method('PUT')
@@ -43,36 +55,49 @@
             {{-- Booking Date --}}
             <div class="col-12 col-md-3">
               <label for="booking_date" class="form-label">Booking Date <span class="text-danger">*</span></label>
-              <input type="date" name="booking_date" id="booking_date"
-                     value="{{ old('booking_date', isset($booking) ? $booking->booking_date->format('Y-m-d') : date('Y-m-d')) }}"
-                     class="form-control @error('booking_date') is-invalid @enderror" required>
+              <div class="date-time-wrapper">
+                <i class="bi bi-calendar-event date-time-icon"></i>
+                <input type="date" name="booking_date" id="booking_date"
+                       value="{{ old('booking_date', isset($booking) ? $booking->booking_date->format('Y-m-d') : date('Y-m-d')) }}"
+                       class="form-control date-time-input @error('booking_date') is-invalid @enderror" required>
+              </div>
               @error('booking_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 
             {{-- Start Date --}}
             <div class="col-12 col-md-3">
               <label for="start_date" class="form-label">Start Date</label>
-              <input type="date" name="start_date" id="start_date"
-                     value="{{ old('start_date', isset($booking) && $booking->start_date ? $booking->start_date->format('Y-m-d') : '') }}"
-                     class="form-control @error('start_date') is-invalid @enderror">
+              <div class="date-time-wrapper">
+                <i class="bi bi-calendar-check date-time-icon"></i>
+                <input type="date" name="start_date" id="start_date"
+                       value="{{ old('start_date', isset($booking) && $booking->start_date ? $booking->start_date->format('Y-m-d') : '') }}"
+                       class="form-control date-time-input @error('start_date') is-invalid @enderror">
+              </div>
               @error('start_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 
             {{-- End Date --}}
             <div class="col-12 col-md-3">
               <label for="end_date" class="form-label">End Date</label>
-              <input type="date" name="end_date" id="end_date"
-                     value="{{ old('end_date', isset($booking) && $booking->end_date ? $booking->end_date->format('Y-m-d') : '') }}"
-                     class="form-control @error('end_date') is-invalid @enderror">
+              <div class="date-time-wrapper">
+                <i class="bi bi-calendar-x date-time-icon"></i>
+                <input type="date" name="end_date" id="end_date"
+                       value="{{ old('end_date', isset($booking) && $booking->end_date ? $booking->end_date->format('Y-m-d') : '') }}"
+                       class="form-control date-time-input @error('end_date') is-invalid @enderror">
+              </div>
               @error('end_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 
             {{-- Start Time --}}
             <div class="col-12 col-md-3">
               <label for="start_time" class="form-label">Start Time</label>
-              <input type="time" name="start_time" id="start_time"
-                     value="{{ old('start_time', isset($booking) ? $booking->start_time?->format('H:i') : '') }}"
-                     class="form-control @error('start_time') is-invalid @enderror">
+              <div class="date-time-wrapper">
+                <i class="bi bi-clock date-time-icon"></i>
+                <input type="time" name="start_time" id="start_time"
+                       step="60"
+                       value="{{ old('start_time', isset($booking) ? $booking->start_time?->format('H:i') : '') }}"
+                       class="form-control date-time-input @error('start_time') is-invalid @enderror">
+              </div>
               @error('start_time')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 
@@ -241,7 +266,7 @@
               <div class="row g-2 align-items-end">
                 <div class="col-12 col-lg">
                   <label class="form-label mb-1">Service Type</label>
-                  <select class="form-select service-select">
+                  <select class="form-select service-select" name="" data-service-select>
                     <option value="">Select a service type</option>
                     @foreach($services as $service)
                       <option value="{{ $service->id }}">
@@ -257,10 +282,201 @@
                   </button>
                 </div>
               </div>
-              {{-- hidden real inputs --}}
-              <input type="hidden" class="real-service-id" name="">
             </div>
           </template>
+        </div>
+      </div>
+
+      {{-- Video Survey --}}
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <h5 class="card-title mb-0">
+              <i class="bi bi-camera-video me-2"></i>Video Survey
+            </h5>
+            <button type="button" class="toggle-survey-btn" id="toggleSurveyBtn">
+              <span class="toggle-text">Yes</span>
+              <i class="bi bi-chevron-down toggle-icon"></i>
+            </button>
+          </div>
+
+          <div id="survey-fields" style="display: {{ old('survey_type', isset($booking) && $booking->survey ? 'block' : 'none') }};">
+            {{-- Survey Type Selection --}}
+            <div class="mb-3">
+              <label class="form-label">Survey Type <span class="text-danger">*</span></label>
+              <div class="d-flex gap-3 flex-wrap">
+                <div class="modern-radio-card">
+                  <input class="modern-radio-input survey-type-radio" type="radio" name="survey_type" id="survey_video_call" value="video_call"
+                         {{ old('survey_type', isset($booking) && $booking->survey ? $booking->survey->survey_type : '') == 'video_call' ? 'checked' : '' }}>
+                  <label class="modern-radio-label" for="survey_video_call">
+                    <i class="bi bi-telephone-video me-2"></i>
+                    <span>Video Call</span>
+                  </label>
+                </div>
+                <div class="modern-radio-card">
+                  <input class="modern-radio-input survey-type-radio" type="radio" name="survey_type" id="survey_video_recording" value="video_recording"
+                         {{ old('survey_type', isset($booking) && $booking->survey ? $booking->survey->survey_type : '') == 'video_recording' ? 'checked' : '' }}>
+                  <label class="modern-radio-label" for="survey_video_recording">
+                    <i class="bi bi-record-circle me-2"></i>
+                    <span>Video Recording</span>
+                  </label>
+                </div>
+                <div class="modern-radio-card">
+                  <input class="modern-radio-input survey-type-radio" type="radio" name="survey_type" id="survey_list" value="list"
+                         {{ old('survey_type', isset($booking) && $booking->survey ? $booking->survey->survey_type : '') == 'list' ? 'checked' : '' }}>
+                  <label class="modern-radio-label" for="survey_list">
+                    <i class="bi bi-list-ul me-2"></i>
+                    <span>List</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {{-- Video Call Fields --}}
+            <div id="video_call_fields" class="survey-type-fields" style="display: none;">
+              {{-- Schedule Date and Time --}}
+              <div class="row g-3 mb-3">
+                <div class="col-12 col-md-6">
+                  <label for="schedule_date" class="form-label">Schedule Date</label>
+                  <div class="date-time-wrapper">
+                    <i class="bi bi-calendar-event date-time-icon"></i>
+                    <input type="date" class="form-control date-time-input" id="schedule_date" name="schedule_date" 
+                           value="{{ old('schedule_date', isset($booking) && $booking->survey ? $booking->survey->schedule_date?->format('Y-m-d') : '') }}">
+                  </div>
+                </div>
+                <div class="col-12 col-md-6">
+                  <label for="schedule_time" class="form-label">Schedule Time</label>
+                  <div class="date-time-wrapper">
+                    <i class="bi bi-clock date-time-icon"></i>
+                    <input type="time" class="form-control date-time-input" id="schedule_time" name="schedule_time" 
+                           step="60"
+                           value="{{ old('schedule_time', isset($booking) && $booking->survey ? $booking->survey->schedule_time : '') }}">
+                  </div>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Status <span class="text-danger">*</span></label>
+                <div class="d-flex gap-3 flex-wrap">
+                  <div class="modern-radio-card status-done">
+                    <input class="modern-radio-input" type="radio" name="survey_status" id="vc_status_done" value="done"
+                           {{ old('survey_status', isset($booking) && $booking->survey ? $booking->survey->status : '') == 'done' ? 'checked' : '' }}>
+                    <label class="modern-radio-label" for="vc_status_done">
+                      <i class="bi bi-check-circle me-2"></i>
+                      <span>Done</span>
+                    </label>
+                  </div>
+                  <div class="modern-radio-card status-pending">
+                    <input class="modern-radio-input" type="radio" name="survey_status" id="vc_status_pending" value="pending"
+                           {{ old('survey_status', isset($booking) && $booking->survey ? $booking->survey->status : '') == 'pending' ? 'checked' : '' }}>
+                    <label class="modern-radio-label" for="vc_status_pending">
+                      <i class="bi bi-clock me-2"></i>
+                      <span>Pending</span>
+                    </label>
+                  </div>
+                  <div class="modern-radio-card status-not-agreed">
+                    <input class="modern-radio-input" type="radio" name="survey_status" id="vc_status_not_agreed" value="not_agreed"
+                           {{ old('survey_status', isset($booking) && $booking->survey ? $booking->survey->status : '') == 'not_agreed' ? 'checked' : '' }}>
+                    <label class="modern-radio-label" for="vc_status_not_agreed">
+                      <i class="bi bi-x-circle me-2"></i>
+                      <span>Not Agreed</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {{-- Video Recording Fields --}}
+            <div id="video_recording_fields" class="survey-type-fields" style="display: none;">
+              <div class="mb-3">
+                <label class="form-label">Status <span class="text-danger">*</span></label>
+                <div class="d-flex gap-3 flex-wrap">
+                  <div class="modern-radio-card status-done">
+                    <input class="modern-radio-input" type="radio" name="survey_status" id="vr_status_done" value="done"
+                           {{ old('survey_status', isset($booking) && $booking->survey ? $booking->survey->status : '') == 'done' ? 'checked' : '' }}>
+                    <label class="modern-radio-label" for="vr_status_done">
+                      <i class="bi bi-check-circle me-2"></i>
+                      <span>Done</span>
+                    </label>
+                  </div>
+                  <div class="modern-radio-card status-pending">
+                    <input class="modern-radio-input" type="radio" name="survey_status" id="vr_status_pending" value="pending"
+                           {{ old('survey_status', isset($booking) && $booking->survey ? $booking->survey->status : '') == 'pending' ? 'checked' : '' }}>
+                    <label class="modern-radio-label" for="vr_status_pending">
+                      <i class="bi bi-clock me-2"></i>
+                      <span>Pending</span>
+                    </label>
+                  </div>
+                  <div class="modern-radio-card status-not-agreed">
+                    <input class="modern-radio-input" type="radio" name="survey_status" id="vr_status_not_agreed" value="not_agreed"
+                           {{ old('survey_status', isset($booking) && $booking->survey ? $booking->survey->status : '') == 'not_agreed' ? 'checked' : '' }}>
+                    <label class="modern-radio-label" for="vr_status_not_agreed">
+                      <i class="bi bi-x-circle me-2"></i>
+                      <span>Not Agreed</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="survey_video" class="form-label">Upload Video</label>
+                
+                <div class="custom-file-upload" id="video-upload-area">
+                  <input type="file" class="custom-file-input" id="survey_video" name="survey_video" accept="video/*">
+                  
+                  <div class="file-upload-content">
+                    <div class="file-upload-icon">
+                      <i class="bi bi-cloud-arrow-up"></i>
+                    </div>
+                    <div class="file-upload-text">
+                      <span class="file-upload-title">Click to upload or drag and drop</span>
+                      <span class="file-upload-subtitle">MP4, AVI, MOV, WMV (Max 100MB)</span>
+                    </div>
+                  </div>
+                  
+                  <div class="file-selected-info" style="display: none;">
+                    <div class="d-flex align-items-center gap-3">
+                      <div class="file-icon">
+                        <i class="bi bi-file-earmark-play-fill"></i>
+                      </div>
+                      <div class="flex-grow-1">
+                        <div class="file-name"></div>
+                        <div class="file-size"></div>
+                      </div>
+                      <button type="button" class="btn-remove-file">
+                        <i class="bi bi-x-lg"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                @if(isset($booking) && $booking->survey && $booking->survey->video_path)
+                  <div class="current-file-info mt-2">
+                    <i class="bi bi-file-earmark-play me-2"></i>
+                    <span class="text-muted">Current video: </span>
+                    <a href="{{ Storage::url($booking->survey->video_path) }}" target="_blank" class="text-primary">
+                      View Video <i class="bi bi-box-arrow-up-right ms-1"></i>
+                    </a>
+                  </div>
+                @endif
+              </div>
+            </div>
+
+            {{-- List Fields --}}
+            <div id="list_fields" class="survey-type-fields" style="display: none;">
+              <div class="mb-3">
+                <label for="survey_list_content" class="form-label">List Content <span class="text-danger">*</span></label>
+                <textarea class="form-control" id="survey_list_content" name="survey_list_content" rows="5" 
+                          placeholder="Enter your list items here...">{{ old('survey_list_content', isset($booking) && $booking->survey ? $booking->survey->list_content : '') }}</textarea>
+              </div>
+            </div>
+
+            {{-- Notes (Common for all types) --}}
+            <div class="mb-0">
+              <label for="survey_notes" class="form-label">Survey Remarks (Optional)</label>
+              <textarea class="form-control" id="survey_notes" name="survey_notes" rows="3" 
+                        placeholder="Add any additional notes...">{{ old('survey_notes', isset($booking) && $booking->survey ? $booking->survey->notes : '') }}</textarea>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -508,6 +724,35 @@
 
   @push('scripts')
   <script>
+  // Debug form submission
+  function debugFormSubmit(event) {
+    const form = event.target;
+    
+    // Clean up empty date/time fields before submission
+    const dateTimeInputs = form.querySelectorAll('input[type="date"], input[type="time"], input[type="datetime-local"]');
+    dateTimeInputs.forEach(input => {
+      if (input.value === '') {
+        input.removeAttribute('name'); // Remove from submission
+      }
+    });
+    
+    const formData = new FormData(form);
+    const services = [];
+    
+    // Collect all service data
+    for (let [key, value] of formData.entries()) {
+      if (key.includes('service')) {
+        services.push({ key, value });
+      }
+    }
+    
+    console.log('Form submitting with services:', services);
+    console.log('All form data:', Array.from(formData.entries()));
+    
+    // Don't prevent default - let form submit normally
+    return true;
+  }
+  
   (function(){
     // Service management
     let serviceIndex = 0;
@@ -617,16 +862,10 @@
       const sel = row.querySelector('.service-select');
       const btnR = row.querySelector('.remove-service');
 
-      const hidId = row.querySelector('.real-service-id');
-
-      // Set unique names for hidden inputs
-      hidId.name = `services[${serviceIndex}][service_id]`;
-
-      function updateRow(){
-        hidId.value = sel.value || '';
-      }
-
-      sel.addEventListener('change', updateRow);
+      // Set the name attribute directly on the select element
+      sel.name = `services[${serviceIndex}][service_id]`;
+      
+      console.log('Added service row with name:', sel.name);
 
       btnR.addEventListener('click', () => {
         row.remove();
@@ -652,6 +891,16 @@
             return $(sel).find('option:first').text() || 'Select an option';
           }
         });
+        
+        // Log when value changes
+        $(sel).on('change', function() {
+          console.log('Service selected:', sel.name, '=', sel.value);
+        });
+      } else {
+        // Native change listener if Select2 not available
+        sel.addEventListener('change', function() {
+          console.log('Service selected:', sel.name, '=', sel.value);
+        });
       }
     });
 
@@ -668,6 +917,59 @@
     
     // Initialize booking type fields on page load
     toggleBookingTypeFields();
+
+    // Load existing services for edit mode
+    @if(isset($booking) && $booking->services->count() > 0)
+      const existingServices = [
+        @foreach($booking->services as $service)
+          { id: '{{ $service->id }}', name: '{{ $service->name }}' },
+        @endforeach
+      ];
+      
+      console.log('Loading existing services:', existingServices);
+      
+      // Add rows sequentially with proper timing
+      let loadIndex = 0;
+      function loadNextService() {
+        if (loadIndex >= existingServices.length) return;
+        
+        const service = existingServices[loadIndex];
+        loadIndex++;
+        
+        // Add a service row
+        btnAdd?.click();
+        
+        // Wait for Select2 to initialize
+        setTimeout(() => {
+          const rows = container.querySelectorAll('.service-row');
+          const lastRow = rows[rows.length - 1];
+          
+          if (lastRow) {
+            const select = lastRow.querySelector('.service-select');
+            
+            if (select) {
+              // Set value using Select2 if available
+              if (typeof $ !== 'undefined' && $.fn.select2 && $(select).hasClass('select2-hidden-accessible')) {
+                $(select).val(service.id).trigger('change');
+                console.log('✓ Pre-populated service (Select2):', select.name, '=', service.id, '(' + service.name + ')');
+              } else {
+                // Fallback to native select
+                select.value = service.id;
+                console.log('✓ Pre-populated service (native):', select.name, '=', select.value, '(' + service.name + ')');
+              }
+            }
+          }
+          
+          // Load next service
+          loadNextService();
+        }, 150);
+      }
+      
+      // Start loading after DOM is ready
+      setTimeout(() => {
+        loadNextService();
+      }, 200);
+    @endif
 
   })();
 
@@ -900,6 +1202,818 @@
     .porter-card.selected {
       animation: pulse 0.3s ease;
     }
+
+    /* Modern Radio Button Styles */
+    .modern-radio-card {
+      position: relative;
+      flex: 1;
+      min-width: 140px;
+    }
+
+    .modern-radio-input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .modern-radio-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 20px;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 500;
+      font-size: 0.95rem;
+      user-select: none;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .modern-radio-label:hover {
+      border-color: #3b82f6;
+      background: #f0f9ff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+    }
+
+    .modern-radio-label i {
+      font-size: 1.1rem;
+      transition: all 0.3s ease;
+    }
+
+    .modern-radio-input:checked + .modern-radio-label {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      border-color: #2563eb;
+      color: white;
+      box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .modern-radio-input:checked + .modern-radio-label i {
+      transform: scale(1.2);
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    }
+
+    /* Checkmark indicator */
+    .modern-radio-input:checked + .modern-radio-label::after {
+      content: '\f26b';
+      font-family: 'bootstrap-icons';
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      font-size: 0.75rem;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: checkmark-pop 0.3s ease;
+    }
+
+    @keyframes checkmark-pop {
+      0% {
+        transform: scale(0);
+        opacity: 0;
+      }
+      50% {
+        transform: scale(1.2);
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    /* Status-specific colors */
+    .status-done .modern-radio-input:checked + .modern-radio-label {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border-color: #059669;
+    }
+
+    .status-done .modern-radio-label:hover {
+      border-color: #10b981;
+      background: #f0fdf4;
+    }
+
+    .status-pending .modern-radio-input:checked + .modern-radio-label {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      border-color: #d97706;
+    }
+
+    .status-pending .modern-radio-label:hover {
+      border-color: #f59e0b;
+      background: #fffbeb;
+    }
+
+    .status-not-agreed .modern-radio-input:checked + .modern-radio-label {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      border-color: #dc2626;
+    }
+
+    .status-not-agreed .modern-radio-label:hover {
+      border-color: #ef4444;
+      background: #fef2f2;
+    }
+
+    /* Dark Mode Styles */
+    [data-theme="dark"] .modern-radio-label {
+      background: #1f2937;
+      border-color: #374151;
+      color: #e5e7eb;
+    }
+
+    [data-theme="dark"] .modern-radio-label:hover {
+      background: #374151;
+      border-color: #3b82f6;
+    }
+
+    [data-theme="dark"] .modern-radio-input:checked + .modern-radio-label {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      border-color: #2563eb;
+      color: white;
+    }
+
+    [data-theme="dark"] .status-done .modern-radio-label:hover {
+      background: #064e3b;
+      border-color: #10b981;
+    }
+
+    [data-theme="dark"] .status-pending .modern-radio-label:hover {
+      background: #78350f;
+      border-color: #f59e0b;
+    }
+
+    [data-theme="dark"] .status-not-agreed .modern-radio-label:hover {
+      background: #7f1d1d;
+      border-color: #ef4444;
+    }
+
+    /* Responsive */
+    @media (max-width: 576px) {
+      .modern-radio-card {
+        min-width: 100%;
+      }
+      
+      .modern-radio-label {
+        padding: 10px 16px;
+        font-size: 0.9rem;
+      }
+    }
+
+    /* Custom File Upload Styles */
+    .custom-file-upload {
+      position: relative;
+      border: 2px dashed #cbd5e1;
+      border-radius: 12px;
+      padding: 30px;
+      background: #f8fafc;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+    }
+
+    .custom-file-upload:hover {
+      border-color: #3b82f6;
+      background: #eff6ff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+    }
+
+    .custom-file-upload.dragover {
+      border-color: #3b82f6;
+      background: #dbeafe;
+      transform: scale(1.02);
+    }
+
+    .custom-file-input {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .file-upload-content {
+      pointer-events: none;
+    }
+
+    .file-upload-icon {
+      margin-bottom: 16px;
+    }
+
+    .file-upload-icon i {
+      font-size: 3rem;
+      color: #64748b;
+      transition: all 0.3s ease;
+    }
+
+    .custom-file-upload:hover .file-upload-icon i {
+      color: #3b82f6;
+      transform: translateY(-4px);
+    }
+
+    .file-upload-text {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .file-upload-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    .file-upload-subtitle {
+      font-size: 0.875rem;
+      color: #64748b;
+    }
+
+    .file-selected-info {
+      padding: 16px;
+      background: white;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .file-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .file-icon i {
+      font-size: 1.5rem;
+      color: white;
+    }
+
+    .file-name {
+      font-weight: 600;
+      color: #1e293b;
+      font-size: 0.95rem;
+      word-break: break-word;
+    }
+
+    .file-size {
+      font-size: 0.875rem;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .btn-remove-file {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: #fee2e2;
+      color: #dc2626;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .btn-remove-file:hover {
+      background: #fecaca;
+      transform: scale(1.1);
+    }
+
+    .btn-remove-file i {
+      font-size: 0.875rem;
+    }
+
+    .current-file-info {
+      padding: 12px 16px;
+      background: #f0f9ff;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .current-file-info i {
+      font-size: 1.1rem;
+      color: #3b82f6;
+    }
+
+    /* Dark Mode */
+    [data-theme="dark"] .custom-file-upload {
+      background: #1f2937;
+      border-color: #374151;
+    }
+
+    [data-theme="dark"] .custom-file-upload:hover {
+      background: #374151;
+      border-color: #3b82f6;
+    }
+
+    [data-theme="dark"] .custom-file-upload.dragover {
+      background: #1e3a8a;
+    }
+
+    [data-theme="dark"] .file-upload-icon i {
+      color: #9ca3af;
+    }
+
+    [data-theme="dark"] .custom-file-upload:hover .file-upload-icon i {
+      color: #60a5fa;
+    }
+
+    [data-theme="dark"] .file-upload-title {
+      color: #e5e7eb;
+    }
+
+    [data-theme="dark"] .file-upload-subtitle {
+      color: #9ca3af;
+    }
+
+    [data-theme="dark"] .file-selected-info {
+      background: #374151;
+      border-color: #4b5563;
+    }
+
+    [data-theme="dark"] .file-name {
+      color: #e5e7eb;
+    }
+
+    [data-theme="dark"] .file-size {
+      color: #9ca3af;
+    }
+
+    [data-theme="dark"] .current-file-info {
+      background: #1e3a8a;
+      color: #e5e7eb;
+    }
+
+    [data-theme="dark"] .btn-remove-file {
+      background: #7f1d1d;
+      color: #fca5a5;
+    }
+
+    [data-theme="dark"] .btn-remove-file:hover {
+      background: #991b1b;
+    }
+
+    /* Responsive */
+    @media (max-width: 576px) {
+      .custom-file-upload {
+        padding: 20px;
+      }
+
+      .file-upload-icon i {
+        font-size: 2.5rem;
+      }
+
+      .file-upload-title {
+        font-size: 0.9rem;
+      }
+
+      .file-upload-subtitle {
+        font-size: 0.8rem;
+      }
+    }
+
+    /* Toggle Survey Button */
+    .toggle-survey-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-weight: 500;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+    }
+
+    .toggle-survey-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    .toggle-survey-btn:active {
+      transform: translateY(0);
+    }
+
+    .toggle-survey-btn .toggle-icon {
+      transition: transform 0.3s ease;
+      font-size: 0.9rem;
+    }
+
+    .toggle-survey-btn.active .toggle-icon {
+      transform: rotate(180deg);
+    }
+
+    .toggle-text {
+      font-weight: 600;
+    }
+
+    /* Survey fields animation */
+    #survey-fields {
+      overflow: hidden;
+      transition: all 0.4s ease;
+    }
+
+    /* Dark mode */
+    [data-theme="dark"] .toggle-survey-btn {
+      background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    }
+
+    [data-theme="dark"] .toggle-survey-btn:hover {
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+    }
+
+    /* Professional Date & Time Picker Styles */
+    .date-time-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .date-time-icon {
+      position: absolute;
+      left: 16px;
+      font-size: 1.1rem;
+      color: #64748b;
+      pointer-events: none;
+      z-index: 2;
+      transition: all 0.3s ease;
+    }
+
+    .date-time-input {
+      padding-left: 48px !important;
+      padding-right: 16px !important;
+      height: 45px;
+      border-radius: 10px;
+      border: 2px solid #e2e8f0;
+      background: white;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: #1e293b;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    /* Hide native calendar icon */
+    .date-time-input::-webkit-calendar-picker-indicator {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      margin: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .date-time-input::-webkit-datetime-edit {
+      padding: 0;
+    }
+
+    /* Focus and Hover States */
+    .date-time-input:hover {
+      border-color: #3b82f6;
+      background: #f8fafc;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+    }
+
+    .date-time-input:hover + .date-time-icon,
+    .date-time-wrapper:hover .date-time-icon {
+      color: #3b82f6;
+      transform: scale(1.1);
+    }
+
+    .date-time-input:focus {
+      border-color: #3b82f6;
+      background: white;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+      outline: none;
+    }
+
+    .date-time-input:focus + .date-time-icon,
+    .date-time-wrapper:has(.date-time-input:focus) .date-time-icon {
+      color: #3b82f6;
+      transform: scale(1.15);
+    }
+
+    /* Placeholder styling */
+    .date-time-input:invalid {
+      color: #94a3b8;
+    }
+
+    /* Selected date/time styling */
+    .date-time-input:valid {
+      color: #1e293b;
+      font-weight: 600;
+    }
+
+    /* Make entire wrapper clickable */
+    .date-time-wrapper {
+      cursor: pointer;
+    }
+
+    .date-time-wrapper::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      cursor: pointer;
+      z-index: 1;
+    }
+
+    /* Dark Mode */
+    [data-theme="dark"] .date-time-input {
+      background: #1f2937;
+      border-color: #374151;
+      color: #e5e7eb;
+    }
+
+    [data-theme="dark"] .date-time-input:hover {
+      background: #374151;
+      border-color: #3b82f6;
+    }
+
+    [data-theme="dark"] .date-time-input:focus {
+      background: #1f2937;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+    }
+
+    [data-theme="dark"] .date-time-icon {
+      color: #9ca3af;
+    }
+
+    [data-theme="dark"] .date-time-input:hover + .date-time-icon,
+    [data-theme="dark"] .date-time-wrapper:hover .date-time-icon {
+      color: #60a5fa;
+    }
+
+    [data-theme="dark"] .date-time-input:focus + .date-time-icon,
+    [data-theme="dark"] .date-time-wrapper:has(.date-time-input:focus) .date-time-icon {
+      color: #60a5fa;
+    }
+
+    [data-theme="dark"] .date-time-input:invalid {
+      color: #6b7280;
+    }
+
+    [data-theme="dark"] .date-time-input:valid {
+      color: #e5e7eb;
+    }
+
+    /* Different icons colors for different field types */
+    .date-time-wrapper:has(input[name="booking_date"]) .date-time-icon {
+      color: #8b5cf6;
+    }
+
+    .date-time-wrapper:has(input[name="start_date"]) .date-time-icon {
+      color: #10b981;
+    }
+
+    .date-time-wrapper:has(input[name="end_date"]) .date-time-icon {
+      color: #ef4444;
+    }
+
+    .date-time-wrapper:has(input[name="start_time"]) .date-time-icon,
+    .date-time-wrapper:has(input[name="schedule_time"]) .date-time-icon {
+      color: #f59e0b;
+    }
+
+    /* Animation on value change */
+    @keyframes date-value-set {
+      0% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.02);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    .date-time-input:valid {
+      animation: date-value-set 0.3s ease;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .date-time-input {
+        height: 42px;
+        font-size: 0.9rem;
+      }
+
+      .date-time-icon {
+        font-size: 1rem;
+        left: 14px;
+      }
+
+      .date-time-input {
+        padding-left: 42px !important;
+      }
+    }
   </style>
+
+  <script>
+  // Video Survey Fields Management
+  document.addEventListener('DOMContentLoaded', function() {
+    const surveyTypeRadios = document.querySelectorAll('.survey-type-radio');
+    const surveyTypeFieldsDivs = document.querySelectorAll('.survey-type-fields');
+    const toggleSurveyBtn = document.getElementById('toggleSurveyBtn');
+    const surveyFields = document.getElementById('survey-fields');
+
+    // Toggle Survey Section
+    if (toggleSurveyBtn && surveyFields) {
+      // Set initial state
+      const isVisible = surveyFields.style.display === 'block';
+      if (isVisible) {
+        toggleSurveyBtn.classList.add('active');
+        toggleSurveyBtn.querySelector('.toggle-text').textContent = 'No';
+      }
+
+      toggleSurveyBtn.addEventListener('click', function() {
+        const isCurrentlyVisible = surveyFields.style.display === 'block';
+        
+        if (isCurrentlyVisible) {
+          // Hide survey fields
+          surveyFields.style.display = 'none';
+          this.classList.remove('active');
+          this.querySelector('.toggle-text').textContent = 'Yes';
+        } else {
+          // Show survey fields
+          surveyFields.style.display = 'block';
+          this.classList.add('active');
+          this.querySelector('.toggle-text').textContent = 'No';
+        }
+      });
+    }
+
+    // Show/hide specific fields based on survey type
+    function handleSurveyTypeChange() {
+      const selectedType = document.querySelector('.survey-type-radio:checked');
+      
+      // Hide all type-specific fields first
+      surveyTypeFieldsDivs.forEach(div => div.style.display = 'none');
+      
+      if (selectedType) {
+        const typeValue = selectedType.value;
+        
+        // Show the corresponding fields
+        if (typeValue === 'video_call') {
+          document.getElementById('video_call_fields').style.display = 'block';
+        } else if (typeValue === 'video_recording') {
+          document.getElementById('video_recording_fields').style.display = 'block';
+        } else if (typeValue === 'list') {
+          document.getElementById('list_fields').style.display = 'block';
+        }
+      }
+    }
+
+    // Attach change event to all survey type radios
+    surveyTypeRadios.forEach(radio => {
+      radio.addEventListener('change', handleSurveyTypeChange);
+    });
+
+    // Initialize on page load if editing
+    handleSurveyTypeChange();
+
+    // Custom File Upload Handler
+    const fileInput = document.getElementById('survey_video');
+    const uploadArea = document.getElementById('video-upload-area');
+    const uploadContent = uploadArea?.querySelector('.file-upload-content');
+    const selectedInfo = uploadArea?.querySelector('.file-selected-info');
+    const removeBtn = uploadArea?.querySelector('.btn-remove-file');
+
+    if (fileInput && uploadArea) {
+      // File select handler
+      fileInput.addEventListener('change', function(e) {
+        handleFileSelect(this.files[0]);
+      });
+
+      // Drag and drop handlers
+      uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.classList.add('dragover');
+      });
+
+      uploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.classList.remove('dragover');
+      });
+
+      uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.classList.remove('dragover');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          fileInput.files = files;
+          handleFileSelect(files[0]);
+        }
+      });
+
+      // Remove file handler
+      if (removeBtn) {
+        removeBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          fileInput.value = '';
+          uploadContent.style.display = 'block';
+          selectedInfo.style.display = 'none';
+        });
+      }
+    }
+
+    function handleFileSelect(file) {
+      if (!file) return;
+
+      // Validate file type
+      const validTypes = ['video/mp4', 'video/avi', 'video/quicktime', 'video/x-ms-wmv'];
+      if (!validTypes.includes(file.type)) {
+        alert('Please select a valid video file (MP4, AVI, MOV, WMV)');
+        fileInput.value = '';
+        return;
+      }
+
+      // Validate file size (100MB = 104857600 bytes)
+      if (file.size > 104857600) {
+        alert('File size must be less than 100MB');
+        fileInput.value = '';
+        return;
+      }
+
+      // Display file info
+      const fileName = selectedInfo.querySelector('.file-name');
+      const fileSize = selectedInfo.querySelector('.file-size');
+      
+      fileName.textContent = file.name;
+      fileSize.textContent = formatFileSize(file.size);
+      
+      uploadContent.style.display = 'none';
+      selectedInfo.style.display = 'block';
+    }
+
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    // Make date/time pickers clickable anywhere on wrapper
+    const dateTimeWrappers = document.querySelectorAll('.date-time-wrapper');
+    
+    dateTimeWrappers.forEach(wrapper => {
+      const input = wrapper.querySelector('.date-time-input');
+      
+      if (input) {
+        // Click on wrapper opens the picker
+        wrapper.addEventListener('click', function(e) {
+          // Don't trigger if already clicking on input
+          if (e.target !== input) {
+            input.showPicker ? input.showPicker() : input.focus();
+          }
+        });
+
+        // Make wrapper tab-accessible
+        wrapper.setAttribute('tabindex', '-1');
+        
+        // Prevent wrapper from stealing focus
+        wrapper.addEventListener('focus', function() {
+          input.focus();
+        });
+      }
+    });
+  });
+  </script>
+
   @endpush
 </x-admin.layouts.app>

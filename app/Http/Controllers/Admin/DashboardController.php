@@ -34,8 +34,11 @@ class DashboardController extends Controller
         $monthlyRevenue = 0;
         $todayRevenue = 0;
         
-        foreach(Booking::all() as $booking) {
-            $revenue = $booking->getFinalTotalFare() + ($booking->extra_hours_amount ?? 0);
+        foreach(Booking::with('expenses')->where('status', 'completed')->get() as $booking) {
+            // Calculate revenue: base fare + extra hours - expenses - company commission
+            $bookingExpenses = $booking->expenses->sum('amount');
+            $companyCommission = $booking->is_company_booking ? ($booking->company_commission_amount ?? 0) : 0;
+            $revenue = $booking->getFinalTotalFare() + ($booking->extra_hours_amount ?? 0) - $bookingExpenses - $companyCommission;
             $totalRevenue += $revenue;
             
             if($booking->booking_date->isCurrentMonth()) {
@@ -122,5 +125,19 @@ class DashboardController extends Controller
             'booking_status',
             'topCustomers'
         ));
+    }
+    public function tinymce(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|image|mimes:jpg,jpeg,png,webp,gif|max:4096',
+        ]);
+
+        // store to public disk: storage/app/public/uploads/tinymce/...
+        $path = $request->file('file')->store('uploads/tinymce', 'public');
+
+        // return absolute URL for editor
+        return response()->json([
+            'location' => asset('storage/'.$path),
+        ]);
     }
 }

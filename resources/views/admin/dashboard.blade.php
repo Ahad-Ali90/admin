@@ -256,7 +256,7 @@
               <a href="{{ route('admin.bookings.index') }}" class="btn btn-sm btn-outline-primary">View All</a>
             </div>
             <div class="table-responsive">
-              <table class="table table-hover align-middle">
+              <table class="table align-middle">
                 <thead class="table-light">
                   <tr>
                     <th>Reference</th>

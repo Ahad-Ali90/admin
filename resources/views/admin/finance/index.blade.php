@@ -119,6 +119,26 @@
       background: #f9fafb;
     }
     
+    /* Dark mode styles for data-table */
+    [data-theme="dark"] .data-table thead th {
+      background: #374151 !important;
+      color: #f9fafb !important;
+      border-bottom: 2px solid #4b5563 !important;
+    }
+    
+    [data-theme="dark"] .data-table tbody td {
+      border-bottom: 1px solid #4b5563 !important;
+      color: #f9fafb !important;
+    }
+    
+    [data-theme="dark"] .data-table tbody tr:hover {
+      background: #374151 !important;
+    }
+    
+    [data-theme="dark"] .data-table tbody tr:hover td {
+      color: #f9fafb !important;
+    }
+    
     .profit-positive {
       color: #16a34a;
       font-weight: 600;

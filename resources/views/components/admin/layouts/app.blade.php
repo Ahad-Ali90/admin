@@ -14,6 +14,7 @@
   {{-- Select2 for searchable dropdowns --}}
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js" referrerpolicy="origin" ></script>
 
   {{-- Optional: your app.css/js via Vite (keep if you have custom styles/scripts) --}}
   @vite(['resources/css/app.css','resources/js/app.js'])
@@ -614,6 +615,186 @@
     [data-theme="dark"] .text-muted {
       color: #ef4444 !important;
     }
+    
+    /* TinyMCE Styling */
+    .tox-tinymce {
+      border: 2px solid #eee;
+      border-radius: 0px !important;
+    }
+    
+    /* TinyMCE Code Editor Height */
+    .tox-dialog__body-content .tox-textarea {
+      min-height: 400px !important;
+    }
+    
+    .tox-dialog--width-lg {
+      max-width: 800px !important;
+    }
+    
+    /* TinyMCE Dark Mode */
+    [data-theme="dark"] .tox-tinymce {
+      border: 2px solid var(--border-color) !important;
+    }
+    
+    [data-theme="dark"] .tox .tox-toolbar,
+    [data-theme="dark"] .tox .tox-toolbar__overflow,
+    [data-theme="dark"] .tox .tox-toolbar__primary {
+      background-color: #2b2b2b !important;
+    }
+    
+    [data-theme="dark"] .tox .tox-statusbar {
+      background-color: #2b2b2b !important;
+      border-top-color: var(--border-color) !important;
+    }
+    
+    /* TinyMCE Code Editor Dark Mode */
+    [data-theme="dark"] .tox-dialog__body-content .tox-textarea {
+      background-color: #1a1a1a !important;
+      color: #f9fafb !important;
+      border-color: var(--border-color) !important;
+    }
+    
+    [data-theme="dark"] .tox .tox-dialog {
+      background-color: var(--card-bg) !important;
+      border-color: var(--border-color) !important;
+    }
+    
+    [data-theme="dark"] .tox .tox-dialog__header {
+      background-color: var(--card-bg) !important;
+      border-bottom-color: var(--border-color) !important;
+      color: var(--text-color) !important;
+    }
+    
+    [data-theme="dark"] .tox .tox-dialog__title {
+      color: var(--text-color) !important;
+    }
+    
+    [data-theme="dark"] .tox .tox-dialog__footer {
+      background-color: var(--card-bg) !important;
+      border-top-color: var(--border-color) !important;
+    }
+    
+    [data-theme="dark"] .tox .tox-label,
+    [data-theme="dark"] .tox .tox-toolbar-label {
+      color: var(--text-color) !important;
+    }
+    [data-theme="dark"] .card-body {
+    border-radius: 15px !important;
+}
+[data-theme="dark"] .table-hover tbody tr:hover {
+      background: var(--hover-bg) !important;
+    }
+
+    /* ========================================
+       GLOBAL DATE & TIME PICKER STYLES
+       ======================================== */
+    
+    /* Wrapper for icon + input */
+    input[type="date"],
+    input[type="time"],
+    input[type="datetime-local"] {
+      padding-left: 40px !important;
+      height: 45px;
+      border-radius: 10px;
+      border: 2px solid #e2e8f0;
+      background: white;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: #1e293b;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      position: relative;
+    }
+
+    /* Hide native calendar/clock icon */
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="time"]::-webkit-calendar-picker-indicator,
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      margin: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    /* Hover States */
+    input[type="date"]:hover,
+    input[type="time"]:hover,
+    input[type="datetime-local"]:hover {
+      border-color: #3b82f6;
+      background: #f8fafc;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+    }
+
+    /* Focus States */
+    input[type="date"]:focus,
+    input[type="time"]:focus,
+    input[type="datetime-local"]:focus {
+      border-color: #3b82f6;
+      background: white;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+      outline: none;
+    }
+
+    /* Placeholder styling */
+    input[type="date"]:invalid,
+    input[type="time"]:invalid,
+    input[type="datetime-local"]:invalid {
+      color: #94a3b8;
+    }
+
+    /* Selected date/time styling */
+    input[type="date"]:valid,
+    input[type="time"]:valid,
+    input[type="datetime-local"]:valid {
+      color: #1e293b;
+      font-weight: 600;
+    }
+
+    /* Dark Mode for Date/Time Pickers */
+    [data-theme="dark"] input[type="date"],
+    [data-theme="dark"] input[type="time"],
+    [data-theme="dark"] input[type="datetime-local"] {
+      background: #1f2937;
+      border-color: #374151;
+      color: #e5e7eb;
+    }
+
+    [data-theme="dark"] input[type="date"]:hover,
+    [data-theme="dark"] input[type="time"]:hover,
+    [data-theme="dark"] input[type="datetime-local"]:hover {
+      background: #374151;
+      border-color: #3b82f6;
+    }
+
+    [data-theme="dark"] input[type="date"]:focus,
+    [data-theme="dark"] input[type="time"]:focus,
+    [data-theme="dark"] input[type="datetime-local"]:focus {
+      background: #1f2937;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+    }
+
+    [data-theme="dark"] input[type="date"]:invalid,
+    [data-theme="dark"] input[type="time"]:invalid,
+    [data-theme="dark"] input[type="datetime-local"]:invalid {
+      color: #6b7280;
+    }
+
+    [data-theme="dark"] input[type="date"]:valid,
+    [data-theme="dark"] input[type="time"]:valid,
+    [data-theme="dark"] input[type="datetime-local"]:valid {
+      color: #e5e7eb;
+    }
+
+    /* ========================================
+       END DATE & TIME PICKER STYLES
+       ======================================== */
   </style>
 
   @stack('styles')
@@ -740,6 +921,19 @@
                 <a class="dropdown-item {{ request()->routeIs('admin.lead-sources.*') ? 'active' : '' }}" 
                    href="{{ route('admin.lead-sources.manage') }}">
                   <i class="bi bi-megaphone me-2"></i>Lead Sources
+                </a>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <a class="dropdown-item {{ request()->routeIs('admin.terms.*') ? 'active' : '' }}" 
+                   href="{{ route('admin.terms.manage') }}">
+                  <i class="bi bi-file-text me-2"></i>Terms & Conditions
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item {{ request()->routeIs('admin.reviews.*') ? 'active' : '' }}" 
+                   href="{{ route('admin.reviews.manage') }}">
+                  <i class="bi bi-star me-2"></i>Reviews
                 </a>
               </li>
             </ul>
@@ -922,6 +1116,157 @@
         subtree: true
       });
     });
+
+    document.addEventListener('DOMContentLoaded', function () {
+  // Function to initialize TinyMCE with theme
+  function initTinyMCE() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    
+    tinymce.init({
+      selector: '#content',
+      height: 500,
+      menubar: 'file edit view insert format tools table help',
+      plugins: 'link image media codesample table lists advlist autoresize code paste',
+      toolbar: 'undo redo | styles | bold italic underline | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media | table | code',
+      branding: false,
+      
+      // Dark mode support
+      skin: isDark ? 'oxide-dark' : 'oxide',
+      content_css: isDark ? 'dark' : 'default',
+
+      // URLs in content should be absolute (no relative or base64)
+      convert_urls: false,
+      relative_urls: false,
+      remove_script_host: false,
+      paste_data_images: false,
+
+      // Image upload -> Laravel route
+      automatic_uploads: true,
+      images_upload_url: '{{ route('tinymce.upload') }}',
+      file_picker_types: 'image',
+
+      // Add CSRF header for Laravel
+      images_upload_handler: function (blobInfo, progress) {
+        return new Promise(function (resolve, reject) {
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', '{{ route('tinymce.upload') }}');
+          xhr.setRequestHeader('X-CSRF-TOKEN', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+          xhr.upload.onprogress = (e) => {
+            progress(e.loaded / e.total * 100);
+          };
+          xhr.onload = function () {
+            if (xhr.status < 200 || xhr.status >= 300) {
+              return reject('HTTP Error: ' + xhr.status);
+            }
+            try {
+              const json = JSON.parse(xhr.responseText);
+              if (!json || typeof json.location !== 'string') {
+                return reject('Invalid JSON: ' + xhr.responseText);
+              }
+              resolve(json.location); // TinyMCE will insert this URL
+            } catch (e) {
+              reject('Parse Error: ' + e.message);
+            }
+          };
+          xhr.onerror = function () {
+            reject('Image upload failed due to a XHR Transport error.');
+          };
+          const formData = new FormData();
+          formData.append('file', blobInfo.blob(), blobInfo.filename());
+          xhr.send(formData);
+        });
+      },
+    });
+  }
+  
+  // Initialize TinyMCE
+  initTinyMCE();
+  
+  // Reinitialize TinyMCE when theme changes
+  const themeObserver = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+        // Remove existing TinyMCE instance
+        if (tinymce.get('content')) {
+          const content = tinymce.get('content').getContent();
+          tinymce.get('content').remove();
+          
+          // Reinitialize with new theme
+          setTimeout(() => {
+            initTinyMCE();
+            // Restore content after reinitialization
+            setTimeout(() => {
+              if (tinymce.get('content')) {
+                tinymce.get('content').setContent(content);
+              }
+            }, 100);
+          }, 100);
+        }
+      }
+    });
+  });
+  
+  themeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-theme']
+  });
+});
+  </script>
+
+  {{-- Global Date/Time Picker Click Handler --}}
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Make date/time pickers clickable anywhere on wrapper
+    const dateTimeWrappers = document.querySelectorAll('.date-time-wrapper');
+    
+    dateTimeWrappers.forEach(wrapper => {
+      const input = wrapper.querySelector('.date-time-input');
+      
+      if (input) {
+        // Click on wrapper opens the picker
+        wrapper.addEventListener('click', function(e) {
+          // Don't trigger if already clicking on input
+          if (e.target !== input) {
+            if (input.showPicker) {
+              try {
+                input.showPicker();
+              } catch (err) {
+                input.focus();
+              }
+            } else {
+              input.focus();
+            }
+          }
+        });
+
+        // Make wrapper tab-accessible
+        wrapper.setAttribute('tabindex', '-1');
+        
+        // Prevent wrapper from stealing focus
+        wrapper.addEventListener('focus', function() {
+          input.focus();
+        });
+      }
+    });
+
+    // Auto-apply to all date/time inputs (for backward compatibility)
+    const allDateTimeInputs = document.querySelectorAll('input[type="date"], input[type="time"], input[type="datetime-local"]');
+    
+    allDateTimeInputs.forEach(input => {
+      // If not already in a wrapper, make it clickable
+      if (!input.closest('.date-time-wrapper')) {
+        input.addEventListener('click', function(e) {
+          if (this.showPicker) {
+            try {
+              this.showPicker();
+            } catch (err) {
+              // Fallback for browsers that don't support showPicker
+            }
+          }
+        });
+      }
+    });
+  });
   </script>
   
   @stack('scripts')

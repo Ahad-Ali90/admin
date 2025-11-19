@@ -173,14 +173,20 @@
 
                 {{-- Right/actions --}}
                 <div class="d-flex align-items-start gap-2 ms-lg-3">
-                  <a href="{{ route('admin.bookings.show', $booking) }}" class="btn btn-sm btn-outline-primary">
-                    <i class="bi bi-eye me-1"></i> View
+                  <a href="{{ route('admin.bookings.show', $booking) }}" class="btn btn-sm btn-outline-primary" style="padding:4px 8px !important;border-radius:0.25rem !important">
+                    <i class="bi bi-eye me-1"></i>
                   </a>
+                  
+                  @if($booking->is_company_booking && $booking->company)
+                    <a href="{{ route('admin.invoices.create', $booking) }}" class="btn btn-sm btn-outline-info" style="padding:4px 8px !important;border-radius:0.25rem !important" title="Create/View Invoice">
+                      <i class="bi bi-file-earmark-text me-1"></i> 
+                    </a>
+                  @endif
                   
                   @if($booking->canStart())
                     <form method="POST" action="{{ route('admin.bookings.start', $booking) }}" class="d-inline">
                       @csrf
-                      <button type="submit" class="btn btn-sm btn-success">
+                      <button type="submit" class="btn btn-sm btn-success" style="padding:4px 8px !important;border-radius:0.25rem !important">
                         <i class="bi bi-play-fill me-1"></i> Start
                       </button>
                     </form>
@@ -189,7 +195,7 @@
                   @if($booking->canComplete())
                     <form method="POST" action="{{ route('admin.bookings.complete', $booking) }}" class="d-inline">
                       @csrf
-                      <button type="submit" class="btn btn-sm btn-success">
+                      <button type="submit" class="btn btn-sm btn-success" style="padding:4px 8px !important;border-radius:0.25rem !important">
                         <i class="bi bi-check-circle-fill me-1"></i> Complete
                       </button>
                     </form>

@@ -196,6 +196,13 @@
     [data-theme="dark"] .form-label {
       color: var(--text-color) !important;
     }
+    [data-theme="dark"] .btn-outline-info:hover {
+      color: white !important;
+    }
+    [data-theme="dark"] .table>:not(caption)>*>* {
+      background-color: #1f2937 !important;
+    }
+    
   </style>
   @endpush
 
@@ -204,20 +211,30 @@
     {{-- Header --}}
     <div class="d-flex flex-column gap-2 flex-md-row align-items-md-center justify-content-md-between mb-4">
       <div>
-        <h1 class="h3 mb-0">Booking Details</h1>
+        <h3 class="h3 mb-0">Booking Details</h3>
         <p class="text-secondary mb-0">{{ $booking->booking_reference }}</p>
       </div>
       <div class="d-flex gap-2">
-        <a href="{{ route('admin.bookings.print', $booking) }}" target="_blank" class="btn btn-primary">
+        @if($booking->is_company_booking && $booking->company)
+          <a href="{{ route('admin.invoices.create', $booking) }}" class="btn btn-sm btn-outline-info" title="Create/View Invoice" style="padding:10px 20px !important;border-radius:0.25rem !important">
+            <i class="bi bi-file-earmark-text me-1"></i>Company Invoice
+          </a>
+        @endif
+        @if(! $booking->is_company_booking && !$booking->company)
+                    <a href="{{ route('public.booking.show', $booking->booking_reference) }}" class="btn btn-sm btn-outline-info" style="padding:10px 20px !important;border-radius:0.25rem !important" title="Create/View Invoice">
+                      <i class="bi bi-person-workspace me-1"></i>Customer Invoice
+                    </a>
+        @endif
+        <!-- <a href="{{ route('admin.bookings.print', $booking) }}" target="_blank" class="btn btn-primary" style="padding:10px 20px !important;border-radius:0.25rem !important">
           <i class="bi bi-printer me-2"></i>Print
-        </a>
-        <a href="{{ route('admin.bookings.edit', $booking) }}" class="btn btn-outline-secondary">
+        </a> -->
+        <a href="{{ route('admin.bookings.edit', $booking) }}" class="btn btn-outline-secondary" style="padding:10px 20px !important;border-radius:0.25rem !important">
           <i class="bi bi-pencil me-2"></i>Edit
         </a>
-        <a href="{{ route('admin.bookings.expenses', $booking) }}" class="btn btn-outline-success">
+        <a href="{{ route('admin.bookings.expenses', $booking) }}" class="btn btn-outline-success" style="padding:10px 20px !important;border-radius:0.25rem !important">
           <i class="bi bi-receipt me-2"></i>Expenses
         </a>
-        <a href="{{ route('admin.bookings.index') }}" class="btn btn-outline-primary">
+        <a href="{{ route('admin.bookings.index') }}" class="btn btn-outline-primary" style="padding:10px 20px !important;border-radius:0.25rem !important">
           <i class="bi bi-arrow-left me-2"></i>Back to Bookings
         </a>
       </div>
@@ -235,6 +252,7 @@
                 <h5 class="card-title mb-1">Booking Status</h5>
                 <div class="text-secondary small">{{ $booking->getStatusDescription() }}</div>
               </div>
+              
               <span class="badge {{ $badgeClass }} px-3 py-2 text-capitalize">
                 {{ str_replace('_',' ', $booking->status) }}
               </span>
@@ -254,8 +272,8 @@
                       </option>
                     @endforeach
                   </select>
-                  <input type="text" name="notes" placeholder="Notes (optional)" class="form-control" style="max-width: 200px;">
-                  <button type="submit" class="btn btn-sm btn-primary">Update</button>
+                  <!-- <input type="text" name="notes" placeholder="Notes (optional)" class="form-control" style="max-width: 200px;"> -->
+                  <button type="submit" class="btn btn-sm btn-outline-primary">Update</button>
                 </form>
               </div>
             @endif
@@ -667,6 +685,108 @@
                     </tr>
                   </tfoot>
                 </table>
+              </div>
+            </div>
+          </div>
+        @endif
+
+        {{-- Video Survey --}}
+        @if($booking->survey)
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title mb-3">
+                <i class="bi bi-camera-video me-2"></i>Video Survey
+              </h5>
+              
+              <div class="row g-3">
+                {{-- Survey Type --}}
+                <div class="col-12 col-md-6">
+                  <div class="text-secondary small mb-1">Survey Type</div>
+                  <div class="d-flex align-items-center gap-2">
+                    @if($booking->survey->survey_type === 'video_call')
+                      <i class="bi bi-telephone-video text-primary"></i>
+                      <span class="fw-medium">Video Call</span>
+                    @elseif($booking->survey->survey_type === 'video_recording')
+                      <i class="bi bi-record-circle text-danger"></i>
+                      <span class="fw-medium">Video Recording</span>
+                    @elseif($booking->survey->survey_type === 'list')
+                      <i class="bi bi-list-ul text-info"></i>
+                      <span class="fw-medium">List</span>
+                    @endif
+                  </div>
+                </div>
+
+                {{-- Schedule (for video call) --}}
+                @if($booking->survey->survey_type === 'video_call' && ($booking->survey->schedule_date || $booking->survey->schedule_time))
+                  <div class="col-12 col-md-6">
+                    <div class="text-secondary small mb-1">Schedule</div>
+                    <div class="d-flex align-items-center gap-2">
+                      <i class="bi bi-calendar-event text-primary"></i>
+                      <span class="fw-medium">
+                        @if($booking->survey->schedule_date)
+                          {{ $booking->survey->schedule_date->format('M d, Y') }}
+                        @endif
+                        @if($booking->survey->schedule_time)
+                          at {{ \Carbon\Carbon::parse($booking->survey->schedule_time)->format('h:i A') }}
+                        @endif
+                      </span>
+                    </div>
+                  </div>
+                @endif
+
+                {{-- Status (for video call and video recording) --}}
+                @if($booking->survey->status)
+                  <div class="col-12 col-md-6">
+                    <div class="text-secondary small mb-1">Status</div>
+                    <div>
+                      <span class="badge bg-{{ $booking->survey->status_badge }} px-3 py-2">
+                        @if($booking->survey->status === 'done')
+                          <i class="bi bi-check-circle me-1"></i>
+                        @elseif($booking->survey->status === 'pending')
+                          <i class="bi bi-clock me-1"></i>
+                        @elseif($booking->survey->status === 'not_agreed')
+                          <i class="bi bi-x-circle me-1"></i>
+                        @endif
+                        {{ $booking->survey->status_label }}
+                      </span>
+                    </div>
+                  </div>
+                @endif
+
+                {{-- List Content --}}
+                @if($booking->survey->survey_type === 'list' && $booking->survey->list_content)
+                  <div class="col-12">
+                    <div class="text-secondary small mb-1">List Content</div>
+                    <div class="border rounded p-3 bg-light">
+                      <pre class="mb-0" style="white-space: pre-wrap; font-family: inherit;">{{ $booking->survey->list_content }}</pre>
+                    </div>
+                  </div>
+                @endif
+
+                {{-- Video File --}}
+                @if($booking->survey->survey_type === 'video_recording' && $booking->survey->video_path)
+                  <div class="col-12">
+                    <div class="text-secondary small mb-1">Uploaded Video</div>
+                    <div>
+                      <a href="{{ Storage::url($booking->survey->video_path) }}" 
+                         target="_blank" 
+                         class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-file-earmark-play me-1"></i>
+                        View Video
+                      </a>
+                    </div>
+                  </div>
+                @endif
+
+                {{-- Notes --}}
+                @if($booking->survey->notes)
+                  <div class="col-12">
+                    <div class="text-secondary small mb-1">Notes</div>
+                    <div class="border rounded p-3 bg-light">
+                      {{ $booking->survey->notes }}
+                    </div>
+                  </div>
+                @endif
               </div>
             </div>
           </div>
